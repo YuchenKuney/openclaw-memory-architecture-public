@@ -95,3 +95,31 @@ memory.add(
 Task 文件：执行快照（可丢弃，不是一等公民）
 注意：OpenClaw 文件系统是 IO 层，不是真相层
 ```
+
+---
+
+## 🛡️ 铁律：公共仓 vs 私人仓脱敏规则
+
+| 上传位置 | 脱敏要求 |
+|---------|---------|
+| **公共仓（GitHub Public）** | 必须脱敏：API Key、Webhook URL、Token、坤哥 chat ID、个人信息 |
+| **私人仓（GitHub Private）** | 不需要脱敏 |
+| **私人 Google Drive** | 不需要脱敏 |
+
+### 常见必须脱敏的内容
+- `ghp_***` / `ya29.***` / `yao2.***` → GitHub PAT、Google OAuth Token
+- Webhook URL 中的 hook ID → 飞书群 webhook 地址
+- `ou_c079cf9f...` → 坤哥飞书 chat ID
+- `.pickle` 文件 → Gmail tokens
+
+### 脱敏方式
+```bash
+# ❌ 硬编码（会触发 GitHub Secret Scanning）
+API_KEY="ghp_abc123..."
+
+# ✅ 环境变量
+API_KEY="${SERPAPI_KEY:-your_key_here}"
+
+# ✅ 占位符（公共仓示例）
+WEBHOOK="https://open.feishu.cn/open-apis/bot/v2/hook/YOUR_WEBHOOK"
+```

@@ -100,7 +100,18 @@ realtime_agent/
 │   └── quality_gate.py     # 质量门禁
 └── common/
     └── message_types.py     # 消息类型定义
-```
+
+### 6. 主动推送与调研脚本（scripts/）
+
+| 文件 | 作用 |
+|------|------|
+| `task_push.sh` | 任务进度主动推送（每 step 完成即推送）|
+| `serpapi_search.sh` | SerpAPI 电商调研（自动搜索 + 推送 + 摘要）|
+| `rclone_sync_progress.sh` | 带进度的 Google Drive 同步脚本 |
+| `tiktokshop_ecom_push.sh` | Google 搜索版 TikTok Shop 调研（备用）|
+| `README.md` | 脚本使用说明文档 |
+
+> **使用前需配置**：设置 `FEISHU_WEBHOOK` 和 `SERPAPI_KEY` 环境变量
 
 ## ⏱️ 进度反馈机制（v7 新增）
 
@@ -214,10 +225,24 @@ python3 scripts/memory_scheduler.py
 bash scripts/task_progress_check.sh
 ```
 
-### 配置飞书 Webhook（用于主动推送）
+### 配置环境变量（主动推送 + 调研）
 
 ```bash
-export FEISHU_WEBHOOK="https://open.feishu.cn/open-apis/bot/v2/hook/YOUR_HOOK"
+# 飞书 Webhook（必填）
+export FEISHU_WEBHOOK="https://open.feishu.cn/open-apis/bot/v2/hook/YOUR_WEBHOOK"
+
+# SerpAPI Key（调研脚本需要，免费注册：https://serpapi.com/）
+export SERPAPI_KEY="your_api_key_here"
+```
+
+### 运行电商调研（方案B主动推送）
+
+```bash
+# TikTok Shop 欧美爆款调研（自动推送进度 + 摘要）
+SERPAPI_KEY=$SERPAPI_KEY bash scripts/serpapi_search.sh
+
+# 带进度的 Google Drive 同步
+RCLONE_REMOTE=yuchen RCLONE_DEST="备份/workspace" bash scripts/rclone_sync_progress.sh
 ```
 
 ## 📁 目录结构
@@ -229,6 +254,10 @@ openclaw-memory-architecture/
 │   ├── context_*.py         # 上下文构建
 │   ├── knowledge_*.py        # 知识管理
 │   ├── pipeline_v5.py        # v5主管道
+│   ├── task_push.sh          # 任务进度主动推送（方案B）
+│   ├── serpapi_search.sh     # SerpAPI 电商调研脚本
+│   ├── rclone_sync_progress.sh  # 带进度的同步脚本
+│   ├── README.md             # 脚本使用说明
 │   ├── multi_agent/          # 多智能体协作
 │   │   ├── router_agent.py
 │   │   ├── orchestrator_agent.py
@@ -242,6 +271,7 @@ openclaw-memory-architecture/
 │   ├── domain/              # 领域知识
 │   ├── errors/               # 错误解决方案
 │   └── operations/            # 运营流程
+│       └── task-schema-v2.md  # Task v2.0 规范
 ├── skills/                  # 可复用技能
 ├── memory/                   # 日记层
 │   └── YYYY-MM-DD.md

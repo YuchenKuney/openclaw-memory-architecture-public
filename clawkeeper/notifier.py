@@ -5,22 +5,35 @@ Clawkeeper Notifier - 通知模块
 """
 
 import os
+import sys
 import json
 import urllib.request
 import urllib.parse
 import time
 from datetime import datetime
 
+# 添加当前目录到路径
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+try:
+    from config_loader import get_webhook_url, get_user_id, get_group_id
+except ImportError:
+    # 如果 config_loader 不存在，使用默认值
+    def get_webhook_url():
+        return os.environ.get("FEISHU_WEBHOOK", "https://open.feishu.cn/open-apis/bot/v2/hook/375a8be1-9e3e-4758-a78b-e775fd4d32a1")
+    def get_user_id():
+        return os.environ.get("KUNGE_ID", "")
+    def get_group_id():
+        return os.environ.get("FEISHU_GROUP_ID", "")
+
 
 class FeishuNotifier:
     """飞书通知器"""
     
     def __init__(self, webhook_url=None):
-        # 坤哥飞书群
-        self.webhook = webhook_url or os.environ.get(
-            "FEISHU_WEBHOOK", 
-            "https://open.feishu.cn/open-apis/bot/v2/hook/375a8be1-9e3e-4758-a78b-e775fd4d32a1"
-        )
+        # 从配置文件读取 webhook URL
+        self.webhook = webhook_url or get_webhook_url()
+        self.user_id = get_user_id()
+        self.group_id = get_group_id()
         self.enabled = True
         
     def send(self, action):

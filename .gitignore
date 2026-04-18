@@ -22,3 +22,4 @@ clawkeeper/*.log
 clawkeeper/pid
 clawkeeper/*.pid
 .sync_log
+config.yaml

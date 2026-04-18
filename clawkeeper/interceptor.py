@@ -47,10 +47,22 @@ class Interceptor:
     def pause_ai(self):
         """
         发送暂停信号给 AI
-        通过设置环境变量或发送特定信号
+        设置环境变量并广播状态，强制阻止后续高危操作
         """
         os.environ["CLAWKEEPER_PAUSED"] = "1"
-        print("[Interceptor] AI 已暂停，等待用户审核")
+        self._broadcast_pause_status()
+        print("[Interceptor] 🔴 AI 已暂停，等待坤哥审核")
+
+    def _broadcast_pause_status(self):
+        """广播暂停状态到飞书"""
+        try:
+            self.notifier.send_simple(
+                "🔴 Clawkeeper 已进入暂停模式，所有高危操作已被拦截！\n"
+                "回复「允许」放行 / 「拒绝」取消暂停",
+                "ERROR"
+            )
+        except Exception as e:
+            print(f"[Interceptor] 广播暂停状态失败: {e}")
         
     def is_blocked(self, path):
         """检查路径是否被拦截"""
@@ -106,7 +118,17 @@ class Interceptor:
             if not path_obj.exists():
                 workspace = os.environ.get("WORKSPACE", "/root/.openclaw/workspace")
                 rel_path = Path(path).relative_to(workspace)
-                cmd = f"cd {workspace} && git checkout -- {rel_path}"
+                import subprocess
+                result = subprocess.run(
+                    ["git", "checkout", "--", str(rel_path)],
+                    cwd=str(workspace),
+                    capture_output=True,
+                    text=True
+                )
+                if result.returncode == 0:
+                    print(f"[Interceptor] 已回退: {path}")
+                else:
+                    print(f"[Interceptor] 回退失败: {path}")
                 result = os.system(cmd)
                 if result == 0:
                     print(f"[Interceptor] 已回退: {path}")
@@ -122,6 +144,61 @@ class Interceptor:
     def is_paused(self):
         """检查是否暂停"""
         return os.environ.get("CLAWKEEPER_PAUSED") == "1"
+
+    def check_and_block_if_paused(self, operation_desc=""):
+        """
+        检查是否暂停，如果是则抛出异常阻止操作
+        用于在高危操作前调用
+        
+        Args:
+            operation_desc: 操作描述（用于日志）
+            
+        Raises:
+            SystemExit: 如果系统处于暂停状态
+        """
+        if self.is_paused():
+            msg = f"⚠️ 系统已被暂停，拒绝执行: {operation_desc}"
+            print(f"[Interceptor] {msg}")
+            try:
+                self.notifier.send_simple(
+                    f"⚠️ 操作已被拦截: {operation_desc}\n系统当前处于暂停状态，等待坤哥审核",
+                    "WARN"
+                )
+            except:
+                pass
+            raise SystemExit(f"Operation blocked: system paused - {operation_desc}")
+
+    def safe_git_operation(self, cmd_args, cwd, operation_desc="git"):
+        """
+        安全执行 Git 操作（防止注入）
+        
+        Args:
+            cmd_args: Git 命令参数列表
+            cwd: 工作目录
+            operation_desc: 操作描述
+            
+        Returns:
+            subprocess.CompletedProcess
+            
+        Raises:
+            SystemExit: 如果系统暂停或命令执行失败
+        """
+        # 先检查是否暂停
+        self.check_and_block_if_paused(operation_desc)
+        
+        import subprocess
+        try:
+            result = subprocess.run(
+                cmd_args,
+                cwd=cwd,
+                capture_output=True,
+                text=True,
+                check=True
+            )
+            return result
+        except subprocess.CalledProcessError as e:
+            print(f"[Interceptor] Git 操作失败: {e.stderr}")
+            raise SystemExit(f"Git operation failed: {e.stderr}")
 
 
 class GitInterceptor:

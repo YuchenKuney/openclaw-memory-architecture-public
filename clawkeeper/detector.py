@@ -92,6 +92,63 @@ class RiskDetector:
             except:
                 pass
         return {"notification_level": "MEDIUM", "audit_log": "/root/.openclaw/workspace/clawkeeper/audit.log"}
+
+    def backup_core_file(self, file_path):
+        """
+        备份核心文件到 backup/ 目录
+        
+        Args:
+            file_path: 文件路径
+            
+        Returns:
+            backup_path: 备份文件路径，如果失败返回 None
+        """
+        import shutil
+        from datetime import datetime
+        
+        try:
+            path = Path(file_path)
+            if not path.exists():
+                return None
+            
+            # 创建备份目录
+            backup_dir = Path(self.workspace) / "clawkeeper" / "backup"
+            backup_dir.mkdir(parents=True, exist_ok=True)
+            
+            # 生成带时间戳的备份文件名
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            backup_name = f"{path.name}.{timestamp}.bak"
+            backup_path = backup_dir / backup_name
+            
+            # 复制文件
+            shutil.copy2(path, backup_path)
+            print(f"[Detector] 已备份核心文件: {path} -> {backup_path}")
+            return backup_path
+            
+        except Exception as e:
+            print(f"[Detector] 备份失败: {e}")
+            return None
+
+    def restore_core_file(self, backup_path, target_path):
+        """
+        从备份恢复核心文件
+        
+        Args:
+            backup_path: 备份文件路径
+            target_path: 目标文件路径
+            
+        Returns:
+            bool: 是否成功
+        """
+        import shutil
+        
+        try:
+            shutil.copy2(backup_path, target_path)
+            print(f"[Detector] 已恢复核心文件: {backup_path} -> {target_path}")
+            return True
+        except Exception as e:
+            print(f"[Detector] 恢复失败: {e}")
+            return False
         
     def _get_rule_level(self, path, event_type):
         """获取规则匹配的风险等级"""
@@ -177,6 +234,12 @@ class RiskDetector:
         
         # 决定动作
         if level >= RiskLevel.HIGH:
+            # CRITICAL/HIGH 级别且是删除操作时，先备份
+            if event_type == "DELETE":
+                backup_path = self.backup_core_file(path)
+                if backup_path:
+                    details["backup_path"] = str(backup_path)
+                    full_msg += f"\n📦 已自动备份到: {backup_path}"
             return Action(level, "BLOCK", full_msg, details, can_proceed=False)
         elif level == RiskLevel.MEDIUM:
             return Action(level, "PAUSE", full_msg, details, can_proceed=False)

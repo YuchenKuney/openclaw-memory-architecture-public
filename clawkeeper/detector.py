@@ -91,7 +91,7 @@ class RiskDetector:
                     return json.load(f)
             except:
                 pass
-        return {"notification_level": "MEDIUM", "audit_log": self.audit_log_path}
+        return {"notification_level": "MEDIUM", "audit_log": "/root/.openclaw/workspace/clawkeeper/audit.log"}
         
     def _get_rule_level(self, path, event_type):
         """获取规则匹配的风险等级"""

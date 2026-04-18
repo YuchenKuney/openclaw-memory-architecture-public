@@ -16,3 +16,8 @@ openclaw_config/
 *.log
 .serpapi_key
 *.serpapi_key
+clawkeeper/*.json
+clawkeeper/install.log
+clawkeeper/*.log
+clawkeeper/pid
+clawkeeper/*.pid

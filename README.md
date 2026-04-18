@@ -120,6 +120,7 @@ realtime_agent/
 | `notifier.py` | 飞书通知 |
 | `auditor.py` | 审计日志 + 报告生成 |
 | `config.py` | 动态配置管理 |
+| `responder.py` | 自动审核响应器（处理允许/拒绝指令）|
 
 | 文件 | 作用 |
 |------|------|

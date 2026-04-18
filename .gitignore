@@ -21,3 +21,4 @@ clawkeeper/install.log
 clawkeeper/*.log
 clawkeeper/pid
 clawkeeper/*.pid
+.sync_log

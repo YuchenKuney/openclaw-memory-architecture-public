@@ -1,6 +1,8 @@
-# OpenClaw 记忆架构 (v7)
+# 🦐 OpenClaw Memory Architecture
 
-> 多层记忆 · 多智能体协作 · 主动进度反馈
+> 坤哥的 Memory System——记忆主权架构
+
+> ⚠️ **免责声明**：本项目由个人开发，食用前请先备份重要数据，以免数据丢失！
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Version: v7.0](https://img.shields.io/badge/Version-v7.0-blue.svg)]
@@ -9,7 +11,7 @@
 
 OpenClaw 记忆架构是一套用于 AI Agent 的**持久化记忆系统**，支持多层记忆管理、多智能体协作和实时进度追踪。
 
-**v7 版本新增**：方案 A 主动进度反馈机制（不依赖用户轮询）
+**v7 版本新增**：方案 A 主动进度反馈机制（cron 安全网 + 主动汇报），方案 B 子 Agent 主动推送机制（待实现）
 
 ## 🏗️ 整体架构
 

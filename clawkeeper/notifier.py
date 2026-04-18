@@ -49,7 +49,49 @@ class FeishuNotifier:
         else:
             return
             
-        # 构建卡片消息
+        # 构建卡片消息（兼容飞书卡片限制）
+        elements = [
+            {
+                "tag": "markdown",
+                "content": f"**文件**: `{action.details.get('path', 'unknown')}`"
+            },
+            {
+                "tag": "markdown", 
+                "content": f"**操作**: `{action.details.get('event', 'unknown')}`"
+            },
+            {
+                "tag": "markdown",
+                "content": f"**风险等级**: {level}"
+            },
+            {
+                "tag": "markdown",
+                "content": f"**时间**: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"
+            },
+            {"tag": "hr"},
+            {
+                "tag": "markdown",
+                "content": f"**Clawkeeper 动作**: `{action.action_type}`  |  **AI 能否继续**: {'✅ 可以' if action.can_proceed else '❌ 不可以'}"
+            },
+            {"tag": "hr"},
+        ]
+        
+        # 根据动作类型添加不同提示
+        if action.action_type == "BLOCK":
+            elements.append({
+                "tag": "div",
+                "text": {"tag": "plain_text", "content": "⚠️ 操作已被拦截！AI 已暂停执行，等待坤哥处理。\n\n回复「允许」放行 / 「拒绝」回退"}
+            })
+        elif action.action_type == "PAUSE":
+            elements.append({
+                "tag": "div", 
+                "text": {"tag": "plain_text", "content": "⏸️ 操作已暂停，等待审核。\n\n回复「允许」继续 / 「拒绝」取消"}
+            })
+        else:
+            elements.append({
+                "tag": "div",
+                "text": {"tag": "plain_text", "content": action.message}
+            })
+            
         card = {
             "msg_type": "interactive",
             "card": {
@@ -57,46 +99,10 @@ class FeishuNotifier:
                     "title": {"tag": "plain_text", "content": f"🛡️ Clawkeeper {title}"},
                     "template": color,
                 },
-                "elements": [
-                    {
-                        "tag": "markdown",
-                        "content": f"**文件**: `{action.details.get('path', 'unknown')}`\n"
-                                   f"**操作**: `{action.details.get('event', 'unknown')}`\n"
-                                   f"**风险等级**: {level}\n"
-                                   f"**时间**: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"
-                    },
-                    {"tag": "hr"},
-                    {
-                        "tag": "markdown",
-                        "content": f"**Clawkeeper 动作**: `{action.action_type}`\n"
-                                   f"**AI 能否继续**: {'✅ 可以' if action.can_proceed else '❌ 不可以'}"
-                    },
-                    {"tag": "hr"},
-                    {
-                        "tag": "markdown",
-                        "content": "**处理方式**:\n"
-                                   f"> {action.message}"
-                    },
-                ],
+                "elements": elements
             }
         }
         
-        # 判断是否需要回复指令
-        if action.action_type == "BLOCK":
-            card["card"]["elements"].append({
-                "tag": "note",
-                "elements": [
-                    {"tag": "markdown", "content": "⚠️ **操作已被拦截！**\nAI 已暂停执行，等待坤哥处理。\n\n回复 `允许` 放行 / `拒绝` 回退"}
-                ]
-            })
-        elif action.action_type == "PAUSE":
-            card["card"]["elements"].append({
-                "tag": "note",
-                "elements": [
-                    {"tag": "markdown", "content": "⏸️ **操作已暂停，等待审核**\n\n回复 `允许` 继续 / `拒绝` 取消"}
-                ]
-            })
-            
         self._send_card(card)
         
     def _send_card(self, card):

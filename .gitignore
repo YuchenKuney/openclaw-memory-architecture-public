@@ -1,2 +1,16 @@
 model_watchdog.py
 __pycache__/
+
+# Private tasks
+tasks/archive/
+
+# Private memory
+memory/[0-9]*
+
+# Private configs
+.openclaw/
+IDENTITY.md
+SOUL.md
+USER.md
+openclaw_config/
+*.log

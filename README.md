@@ -5,13 +5,13 @@
 > ⚠️ **免责声明**：本项目由个人开发，食用前请先备份重要数据，以免数据丢失！
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Version: v7.0](https://img.shields.io/badge/Version-v7.0-blue.svg)]
+[![Version: v8.0](https://img.shields.io/badge/Version-v8.0-blue.svg)]
 
 ## 🌟 简介
 
 OpenClaw 记忆架构是一套用于 AI Agent 的**持久化记忆系统**，支持多层记忆管理、多智能体协作和实时进度追踪。
 
-**v7 版本新增**：方案 A 主动进度反馈机制（cron 安全网 + 主动汇报），方案 B 子 Agent 主动推送机制（已落地：task_push.sh）
+**v8 版本核心**：反黑箱安全审计（AI行为全透明）+ 主动进度反馈机制（cron 安全网 + 主动汇报）
 
 ## 🏗️ 整体架构
 
@@ -216,9 +216,76 @@ route: feishu:direct:ou_xxx
 | v1-v4 | 基础记忆 CRUD |
 | v5 | 多智能体协作层 + 冲突检测 |
 | v6 | 图检索 + 反思引擎 |
-| **v7** | **方案A主动进度反馈 + 任务状态结构化** |
-| **v7** | **方案A + 方案B主动推送（task_push.sh + SerpAPI调研脚本）** |
-| **v8** | **Clawkeeper安全审计（inotify监控 + 风险分级 + 人工审核）** |
+| **v7** | **主动进度反馈 + 任务状态结构化** |
+| **v8** | **反黑箱安全审计（AI行为全透明 + inotify监控 + 风险分级 + 人工审核）** |
+
+## 🛡️ 反黑箱安全审计（V8 核心）
+
+> 坤哥的 Memory System——**AI 行为全透明，用户始终知道 Agent 在做什么**
+
+### 什么是反黑箱？
+
+传统 AI Agent：AI 在后台默默做事，用户不知道它做了什么、为什么要做、做了多少次。
+
+**反黑箱 = AI 的每一个操作都对用户可见可查**
+
+### Clawkeeper 架构
+
+```
+AI 操作 → inotify监控 → 风险检测 → 拦截/暂停/通知 → 用户审核 → 自动执行
+```
+
+### 风险等级与响应
+
+| 等级 | 操作示例 | 响应方式 |
+|------|---------|---------|
+| 🔴 CRITICAL | 删除 AGENTS.md/SOUL.md/MEMORY.md | **立即拦截 + 立即通知** |
+| 🚨 HIGH | 修改核心文件、删除核心目录 | **立即拦截 + 立即通知** |
+| ⚠️ MEDIUM | push 到公共仓库 | **暂停 + 等用户审核** |
+| 📝 LOW | 创建/修改普通文件 | 记录日志 |
+| ✅ SAFE | 正常操作 | 放行 |
+
+### 审核指令
+
+| 用户回复 | AI 行为 |
+|---------|--------|
+| 「允许」 | 放行操作，AI 继续执行 |
+| 「拒绝」 | 取消操作，自动回退（git checkout） |
+
+### 覆盖范围
+
+- ✅ **文件操作**：inotify 实时监控
+- ✅ **cron 定时任务**：systemEvent 触发，通知用户
+- ✅ **坤哥指令任务**：task_push.sh 每步推送
+- ✅ **子 Agent 任务**：内置回调推送机制
+
+### 通知示例
+
+```
+🔴 [CRITICAL] 尝试删除核心文件：AGENTS.md
+文件: /workspace/AGENTS.md
+操作: DELETE
+风险等级: CRITICAL
+
+处理方式: 操作已被拦截！AI 已暂停执行，等待坤哥处理。
+回复「允许」放行 / 「拒绝」回退
+```
+
+### 快速部署
+
+```bash
+# 安装 Clawkeeper
+cd clawkeeper
+bash scripts/install.sh
+
+# 启动监控
+python3 -m clawkeeper.watcher
+
+# 动态调整通知频率（0-关闭/CRITICAL/HIGH/MEDIUM/LOW）
+python3 -c "from config import ClawkeeperConfig; \
+    config = ClawkeeperConfig(); \
+    config.set_notification_level('MEDIUM')"
+```
 
 ## 🚀 快速开始
 

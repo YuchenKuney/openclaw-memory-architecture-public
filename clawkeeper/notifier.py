@@ -144,6 +144,65 @@ class FeishuNotifier:
         except Exception as e:
             print(f"[Notifier] 发送失败: {e}")
 
+    def notify_git_operation(self, operation, target, remote):
+        """
+        发送 Git 操作通知
+        用于 git push / git commit / git merge 等操作前通知坤哥
+        
+        Args:
+            operation: 操作类型 (push/commit/merge/...)
+            target: 目标分支或仓库
+            remote: 远程仓库 URL
+        """
+        # 简化仓库名
+        repo_name = remote.split("/")[-1].replace(".git", "") if remote else "unknown"
+        
+        card = {
+            "msg_type": "interactive",
+            "card": {
+                "header": {
+                    "title": {"tag": "plain_text", "content": "🛡️ Git 操作通知"},
+                    "template": "yellow",
+                },
+                "elements": [
+                    {"tag": "markdown", "content": f"**Git 操作**: `{operation.upper()}`"},
+                    {"tag": "markdown", "content": f"**目标**: `{target}`"},
+                    {"tag": "markdown", "content": f"**仓库**: `{repo_name}`"},
+                    {"tag": "markdown", "content": f"**时间**: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"},
+                    {"tag": "hr"},
+                    {"tag": "div", "text": {"tag": "plain_text", "content": "⚠️ AI 即将执行 Git 操作\n\n如需审核，请回复「允许」或「拒绝」"}},
+                ]
+            }
+        }
+        self._send_card(card)
+
+    def log_git_operation(self, operation, target, remote, result="pending"):
+        """
+        记录 Git 操作到审计日志
+        
+        Args:
+            operation: 操作类型
+            target: 目标
+            remote: 远程仓库
+            result: 结果 (pending/success/failed/rejected)
+        """
+        entry = {
+            "timestamp": datetime.now().isoformat(),
+            "level": "GIT_OPERATION",
+            "operation": operation,
+            "target": target,
+            "remote": remote,
+            "result": result,
+        }
+        
+        audit_log = "/root/.openclaw/workspace/clawkeeper/audit.log"
+        try:
+            os.makedirs(os.path.dirname(audit_log), exist_ok=True)
+            with open(audit_log, "a") as f:
+                f.write(json.dumps(entry, ensure_ascii=False) + "\n")
+        except Exception as e:
+            print(f"[Notifier] 审计日志写入失败: {e}")
+
 
 class AuditLogger:
     """本地审计日志（备份）"""

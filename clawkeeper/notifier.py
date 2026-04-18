@@ -187,7 +187,7 @@ class FeishuNotifier:
             result: 结果 (pending/success/failed/rejected)
         """
         entry = {
-            "timestamp": datetime.now().isoformat(),
+            "time": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
             "level": "GIT_OPERATION",
             "operation": operation,
             "target": target,

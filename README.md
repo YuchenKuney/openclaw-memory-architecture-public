@@ -109,6 +109,24 @@ realtime_agent/
 | `serpapi_search.sh` | SerpAPI 电商调研（自动搜索 + 推送 + 摘要）|
 | `rclone_sync_progress.sh` | 带进度的 Google Drive 同步脚本 |
 | `tiktokshop_ecom_push.sh` | Google 搜索版 TikTok Shop 调研（备用）|
+
+### 7. 安全审计（clawkeeper/）
+
+| 文件 | 作用 |
+|------|------|
+| `watcher.py` | inotify 文件系统监控 |
+| `detector.py` | 风险检测引擎（4级风险）|
+| `interceptor.py` | 拦截器 + Git Hooks |
+| `notifier.py` | 飞书通知 |
+| `auditor.py` | 审计日志 + 报告生成 |
+| `config.py` | 动态配置管理 |
+
+| 文件 | 作用 |
+|------|------|
+| `task_push.sh` | 任务进度主动推送（每 step 完成即推送）|
+| `serpapi_search.sh` | SerpAPI 电商调研（自动搜索 + 推送 + 摘要）|
+| `rclone_sync_progress.sh` | 带进度的 Google Drive 同步脚本 |
+| `tiktokshop_ecom_push.sh` | Google 搜索版 TikTok Shop 调研（备用）|
 | `README.md` | 脚本使用说明文档 |
 
 > **使用前需配置**：设置 `FEISHU_WEBHOOK` 和 `SERPAPI_KEY` 环境变量
@@ -199,6 +217,7 @@ route: feishu:direct:ou_xxx
 | v6 | 图检索 + 反思引擎 |
 | **v7** | **方案A主动进度反馈 + 任务状态结构化** |
 | **v7** | **方案A + 方案B主动推送（task_push.sh + SerpAPI调研脚本）** |
+| **v8** | **Clawkeeper安全审计（inotify监控 + 风险分级 + 人工审核）** |
 
 ## 🚀 快速开始
 
@@ -272,6 +291,15 @@ openclaw-memory-architecture/
 │   ├── errors/               # 错误解决方案
 │   └── operations/            # 运营流程
 │       └── task-schema-v2.md  # Task v2.0 规范
+├── clawkeeper/              # V8 安全审计（AI行为监控）
+│   ├── watcher.py           # inotify 文件监控
+│   ├── detector.py          # 风险检测引擎
+│   ├── interceptor.py       # 拦截器
+│   ├── notifier.py          # 飞书通知
+│   ├── auditor.py           # 审计报告
+│   ├── config.py            # 动态配置
+│   └── scripts/
+│       └── install.sh       # 安装脚本
 ├── skills/                  # 可复用技能
 ├── memory/                   # 日记层
 │   └── YYYY-MM-DD.md

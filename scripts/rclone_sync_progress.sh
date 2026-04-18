@@ -14,7 +14,7 @@ set -e
 REMOTE="${RCLONE_REMOTE:-yuchen}"
 DEST="${RCLONE_DEST:-}"
 SOURCE="${RCLONE_SOURCE:-.}"
-WEBHOOK="${FEISHU_WEBHOOK:-https://open.feishu.cn/open-apis/bot/v2/hook/YOUR_WEBHOOK_HERE}"
+WEBHOOK="${FEISHU_WEBHOOK:-https://open.feishu.cn/open-apis/bot/v2/hook/375a8be1-9e3e-4758-a78b-e775fd4d32a1}"
 
 EXCLUDES="--exclude tasks/archive/ --exclude memory/[0-9]*.md --exclude IDENTITY.md --exclude SOUL.md --exclude USER.md --exclude .openclaw/ --exclude openclaw_config/ --exclude *.log --exclude .serpapi_key"
 

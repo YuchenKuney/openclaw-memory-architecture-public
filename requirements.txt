@@ -1,0 +1,13 @@
+# 本项目仅使用 Python 3 标准库，无需安装第三方依赖
+#
+# 标准库依赖：
+#   - os, sys, json, re, hashlib (内置)
+#   - pathlib (Python 3.4+)
+#   - datetime, timedelta (内置)
+#   - typing (Python 3.5+)
+#   - subprocess (内置)
+#   - urllib.request (内置)
+#
+# 如需可选增强功能，可安装：
+#   - python-dotenv    # 环境变量管理
+#   - networkx         # 知识图谱可视化（可选）

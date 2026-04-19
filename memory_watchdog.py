@@ -326,6 +326,61 @@ class MemoryWatchdog:
         
         return decision
     
+    def run_integrity_check(self) -> Decision:
+        """
+        缺口②：定时完整性检查
+        每周自动重新生成 integrity_manifest + 比对检测篡改
+        """
+        decision = Decision("integrity_check", "memory 文件完整性校验")
+
+        try:
+            # 动态 import（避免循环依赖）
+            import sys
+            sys.path.insert(0, str(Path(__file__).parent))
+            from clawkeeper.detector import RiskDetector
+            from clawkeeper.auditor import Auditor
+
+            # 1. 保存新的 manifest（每周重新生成）
+            detector = RiskDetector()
+            detector.save_integrity_manifest()
+
+            # 2. 比对检测
+            auditor = Auditor()
+            integrity_result = auditor._check_file_integrity()
+
+            status = integrity_result.get("status", "unknown")
+            changed = integrity_result.get("changed", [])
+            added = integrity_result.get("added", [])
+            removed = integrity_result.get("removed", [])
+
+            if status == "compromised":
+                decision.result = "compromised"
+                decision.reason = f"memory/ 被篡改！changed={changed}, added={added}"
+                print(f"🔴 [Watchdog] memory/ 完整性被破坏！changed={changed}, added={added}")
+            elif status == "unknown":
+                decision.result = "skipped"
+                decision.reason = "无历史 manifest，首次生成"
+            else:
+                decision.result = "success"
+                decision.reason = f"完整性校验通过 ({status})"
+                print(f"✅ [Watchdog] memory/ 完整性校验通过")
+
+            decision.details = {
+                "status": status,
+                "changed": changed,
+                "added": added,
+                "removed": removed,
+            }
+
+        except Exception as e:
+            decision.result = "error"
+            decision.reason = f"完整性检查异常: {e}"
+            decision.details = {"error": str(e)}
+            print(f"⚠️ [Watchdog] 完整性检查失败: {e}")
+
+        self.decisions_made.append(decision)
+        return decision
+
     def run_health_check(self) -> Decision:
         """执行健康检查"""
         decision = Decision("health_check", "例行健康检查")
@@ -382,8 +437,11 @@ class MemoryWatchdog:
         
         # 1. 健康检查
         self.run_health_check()
-        
-        # 2. 决策：是否需要清理
+
+        # 2. 完整性检查（缺口②：每周自动更新 manifest + 比对）
+        self.run_integrity_check()
+
+        # 3. 决策：是否需要清理
         cleanup_decision = self.execute_cleanup()
         
         # 3. 决策：是否需要提炼

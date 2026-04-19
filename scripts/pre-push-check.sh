@@ -49,10 +49,37 @@ for pattern in "${PATTERNS[@]}"; do
     fi
 done
 
+# 获取远程 main 分支（兼容 origin / pub_arch 等多种命名）
+get_remote_main() {
+    local remote="$1"
+    # 优先查找 ${remote}/main，不行就找 ${remote}/master
+    if git rev-parse --verify "${remote}/main" &>/dev/null; then
+        echo "${remote}/main"
+    elif git rev-parse --verify "${remote}/master" &>/dev/null; then
+        echo "${remote}/master"
+    fi
+}
+
+# 自动检测本次推送涉及的新 commits
+DETECT_NEW_COMMITS=""
+for pub in $PUBLIC_REPOS; do
+    remote_main=$(get_remote_main "$pub")
+    if [ -n "$remote_main" ] && git log --oneline "$remote_main..HEAD" &>/dev/null; then
+        DETECT_NEW_COMMITS="$remote_main"
+        break
+    fi
+done
+
+if [ -z "$DETECT_NEW_COMMITS" ]; then
+    echo "⚠️ 无法确定远程 main 分支，跳过 commit 范围检查（请确保代码已同步）"
+    DETECT_NEW_COMMITS="HEAD"  # fallback：检查整个 HEAD
+fi
+echo "→ 脱敏扫描范围: ${DETECT_NEW_COMMITS}..HEAD"
+
 # 检查即将推送的 commits
-if git log --oneline origin/main..HEAD | head -20; then
+if git log --oneline "${DETECT_NEW_COMMITS}..HEAD" | head -20; then
     for pattern in "${PATTERNS[@]}"; do
-        if git log origin/main..HEAD -p | grep -qE "$pattern"; then
+        if git log "${DETECT_NEW_COMMITS}..HEAD" -p | grep -qE "$pattern"; then
             echo "❌ 敏感信息命中: $pattern (在本次推送的 commits 中)"
             ISSUES=$((ISSUES + 1))
         fi

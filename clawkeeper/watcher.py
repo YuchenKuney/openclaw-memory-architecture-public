@@ -61,17 +61,33 @@ class ClawWatcher:
         """
         处理 tasks/progress/ 目录下的进度文件变化
         解析 JSON → 推送群聊进度卡片
+
+        字段映射（progress_tracker.py 实际写入格式）：
+          name       → 任务名称
+          jobId      → 任务ID
+          progress   → 进度 0-100
+          step       → 当前步骤描述
+          status     → running/done/error
+          message    → 额外消息
+          updatedAt  → 更新时间
+          steps      → 历史步骤列表
         """
         import json as _json
         try:
             with open(path, 'r', encoding='utf-8') as f:
                 data = _json.load(f)
 
-            job_name = data.get('jobName', '未知任务')
+            # 兼容 progress_tracker.py 的字段格式
+            job_name = data.get('name', data.get('jobName', '未知任务'))
             progress = data.get('progress', 0)
-            step = data.get('step', '')
+            step = data.get('step', data.get('currentStep', ''))
             message = data.get('message', '')
             status = data.get('status', 'running')
+            job_id = data.get('jobId', Path(path).stem)
+
+            # 过滤：忽略 progress=0 或刚创建的文件（避免误报）
+            if progress == 0 and status == 'running':
+                return
 
             # 只在 running 状态推送进度
             if status == 'running':
@@ -79,7 +95,8 @@ class ClawWatcher:
             elif status == 'done':
                 self.notifier.notify_group_progress(job_name, 100, '✅ 已完成', message)
             elif status == 'error':
-                self.notifier.notify_group_progress(job_name, progress, '🔴 任务异常', message)
+                err_msg = data.get('error', message or '任务异常')
+                self.notifier.notify_group_progress(job_name, progress, '🔴 任务异常', err_msg)
 
         except Exception as e:
             print(f"[Watcher] 进度事件处理异常: {e}")

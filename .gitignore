@@ -23,3 +23,7 @@ clawkeeper/pid
 clawkeeper/*.pid
 .sync_log
 config.yaml
+
+# Git 配置（包含认证token）
+.git/config
+.gitcredentials

@@ -12,6 +12,7 @@ import os
 import json
 import time
 import asyncio
+import re
 import urllib.request
 import urllib.error
 import hashlib
@@ -19,6 +20,110 @@ from enum import IntEnum
 from pathlib import Path
 from dataclasses import dataclass, field
 from typing import Optional, List, Dict
+
+
+# ============ 意图分类器：区分日常对话 / 任务执行 ============
+
+class IntentClassifier:
+    """
+    意图分类器：判断用户输入是"日常对话"还是"任务执行"
+
+    工作模式（任务执行）：严格反黑箱检测
+    - 包含操作指令（帮我/执行/修复/分析）+ 目标（文件路径/代码/命令）
+    - 包含代码块（多行 ``` 或行内反引号）
+    - 明确操作词：push/commit/audit/fix/write/read
+
+    日常模式：不触发反黑箱
+    - 纯问答、闲聊、问候、无文件操作的对话
+    """
+
+    # 任务执行触发模式（正则）
+    TASK_PATTERNS = [
+        # 操作动词开头
+        r"^/?(?:帮我|帮我把|帮我执行|请帮我|麻烦帮我|帮我修|帮我做|帮我分析|帮我写|帮我查|帮我找|帮我生成|帮我创建|帮我提交|帮我推送|帮我审计|帮我修复|帮我检查|帮我验证)",
+        # 明确操作词
+        r"(?:push|commit|audit|fix|analyze|write|create|delete|modify|execute|run)\s+",
+        # 任务文件引用
+        r"(?:scripts?|clawkeeper|memory|shared|tasks?|AGENTS|MEMORY|SOUL)\/|:\/+",
+        # Shell 命令执行
+        r"^\s*(?:python|python3|bash|sh|git|curl|wget)\s+",
+        # 多行代码块
+        r"```",
+        # 行内代码/路径
+        r"`(?:\/[^`]+|\w+\.\w+)`",
+    ]
+
+    # 日常对话排除模式（出现这些直接判定为日常）
+    CHAT_PATTERNS = [
+        r"^(?:你好|您好|hey|hi|hello|嗨)",
+        r"^(?:谢谢|thanks|thx|谢了)",
+        r"^(?:怎么了|怎么回事|问一下|想问一下)",
+        r"^(?:坤哥|老板|哥)",
+        r"^\?$|^\?\s",
+        r"^(?:现在几点|今天几号|天气)",
+    ]
+
+    def __init__(self):
+        self._task_re = [re.compile(p, re.IGNORECASE) for p in self.TASK_PATTERNS]
+        self._chat_re = [re.compile(p) for p in self.CHAT_PATTERNS]
+        # 工作模式状态（一旦进入，直到超时才退出）
+        self._work_mode_until: float = 0
+        # 坤哥可以手动切换
+        self._force_mode: Optional[str] = None  # "work" | "chat" | None
+
+    def set_mode(self, mode: str):
+        """坤哥手动强制指定模式"""
+        if mode not in ("work", "chat"):
+            self._force_mode = None
+        else:
+            self._force_mode = mode
+            print(f"[IntentClassifier] 手动切换为 {mode} 模式")
+
+    def detect(self, user_message: str) -> str:
+        """
+        判断用户输入的意图模式
+
+        Returns:
+            "work"  → 任务执行模式（严格反黑箱）
+            "chat"   → 日常对话模式（不触发反黑箱）
+        """
+        import time
+
+        # 手动模式优先
+        if self._force_mode:
+            return self._force_mode
+
+        msg = user_message.strip()
+        if not msg:
+            return "chat"
+
+        # 检查是否在工作模式时效内
+        if time.time() < self._work_mode_until:
+            return "work"
+
+        # 命中日常对话 → chat
+        for pat in self._chat_re:
+            if pat.match(msg):
+                return "chat"
+
+        # 命中任务执行 → work
+        task_score = sum(1 for pat in self._task_re if pat.search(msg))
+        if task_score >= 1:
+            # 进入工作模式，5 分钟超时
+            self._work_mode_until = time.time() + 300
+            return "work"
+
+        # 多行消息且包含操作意图
+        lines = msg.split("\n")
+        if len(lines) >= 3:
+            # 3行以上，且有操作指向 → work
+            has_file_ref = any("/" in l or "." in l for l in lines if len(l) < 100)
+            has_verb = any(len(l) < 30 for l in lines[:2])
+            if has_file_ref and has_verb:
+                self._work_mode_until = time.time() + 300
+                return "work"
+
+        return "chat"
 
 
 # ============ 风险等级枚举 ============
@@ -557,10 +662,10 @@ class RiskDetector:
         else:
             return self._build_action(event_info, regex_level, None)
 
-    def evaluate(self, event_info: dict) -> Optional[Action]:
+    def evaluate(self, event_info: dict, mode: str = "work") -> Optional[Action]:
         """
         同步评估入口（兼容现有代码）
-        内部自动判断是否走异步语义判断
+        mode: "work" | "chat"，日常模式下降低响应级别
         """
         path = event_info["path"]
         event_type = event_info["event"]
@@ -568,15 +673,21 @@ class RiskDetector:
         # 同步版本：先用正则
         regex_level = self._get_rule_level(path, event_type)
 
+        # 日常模式下，MEDIUM→WARN(但不通知)，HIGH→MEDIUM
+        if mode == "chat":
+            if regex_level >= RiskLevel.HIGH:
+                regex_level = RiskLevel.MEDIUM
+            elif regex_level == RiskLevel.MEDIUM:
+                regex_level = RiskLevel.LOW
+
         if regex_level >= RiskLevel.HIGH:
-            return self._build_action(event_info, regex_level, None)
+            return self._build_action(event_info, regex_level, None, mode)
 
         # 中低危：尝试异步语义判断（如果已配置）
-        if self.semantic_enabled:
+        if self.semantic_enabled and mode == "work":
             try:
                 loop = asyncio.get_event_loop()
                 if loop.is_running():
-                    # 已在异步上下文中，创建 task
                     import concurrent.futures
                     with concurrent.futures.ThreadPoolExecutor() as executor:
                         fut = executor.submit(
@@ -588,15 +699,16 @@ class RiskDetector:
                         )
                         semantic_result = fut.result(timeout=20)
                     if semantic_result and semantic_result.risk_level > regex_level:
-                        return self._build_action(event_info, semantic_result.risk_level, semantic_result)
+                        return self._build_action(event_info, semantic_result.risk_level, semantic_result, mode)
             except Exception as e:
                 print(f"[Detector] 异步语义判断失败: {e}，使用正则结果")
 
-        return self._build_action(event_info, regex_level, None)
+        return self._build_action(event_info, regex_level, None, mode)
 
     def _build_action(self, event_info: dict, level: RiskLevel,
-                      semantic_result: SemanticJudgeResult = None) -> Optional[Action]:
-        """根据风险等级构建 Action 对象"""
+                      semantic_result: SemanticJudgeResult = None,
+                      mode: str = "work") -> Optional[Action]:
+        """根据风险等级 + 意图模式构建 Action 对象"""
         path = event_info["path"]
         event_type = event_info["event"]
 
@@ -614,16 +726,19 @@ class RiskDetector:
         msg = msg_map.get(event_type, event_type)
         filename = Path(path).name
 
-        full_msg = f"{emoji} [{level.name}] {msg}：{filename}"
+        mode_tag = "[工作模式] " if mode == "work" else "[日常模式] "
+        full_msg = f"{mode_tag}{emoji} [{level.name}] {msg}：{filename}"
         if semantic_result and semantic_result.is_suspicious:
             full_msg += f"\n🧠 语义判断: {semantic_result.reason}"
             if semantic_result.attack_type:
                 full_msg += f"\n🎯 攻击类型: {semantic_result.attack_type}"
+        if mode == "chat":
+            full_msg += "\n💬 日常对话中，仅记录不拦截"
 
         details = {
             "path": path, "event": event_type,
             "risk_level": level.name,
-            "regex_level": event_info.get("regex_level", level.name),
+            "mode": mode,
         }
         if semantic_result:
             details["semantic_risk"] = semantic_result.risk_level.name

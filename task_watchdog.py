@@ -40,13 +40,28 @@ FEISHU_GROUP = os.environ.get(
 )
 
 
+# ============ 反黑箱四级分级（与 interceptor.py 一致）============
+
+class AlertLevel:
+    SAFE = 0
+    LOW = 1
+    MEDIUM = 2
+    HIGH = 3
+    CRITICAL = 4
+
+
 # ============ 飞书推送 ============
 
 def send_simple_msg(msg: str, level: str = "INFO"):
     """发送飞书文本消息"""
     try:
         import urllib.request
-        emoji_map = {"INFO": "ℹ️", "WARN": "⚠️", "ERROR": "❌", "SUCCESS": "✅", "HEARTBEAT": "💓"}
+        emoji_map = {
+            "INFO": "ℹ️", "WARN": "⚠️", "ERROR": "❌",
+            "SUCCESS": "✅", "HEARTBEAT": "💓",
+            "SAFE": "✅", "LOW": "📝", "MEDIUM": "⚠️",
+            "HIGH": "🚨", "CRITICAL": "🔴",
+        }
         payload = json.dumps({
             "msg_type": "text",
             "content": {"text": f"{emoji_map.get(level, 'ℹ️')} [{level}] {msg}"}
@@ -59,16 +74,34 @@ def send_simple_msg(msg: str, level: str = "INFO"):
         pass
 
 
-def send_card(title: str, content: str, template: str = "blue"):
-    """发送飞书卡片"""
+ALERT_TEMPLATE = {
+    0: ("blue", "✅"),
+    1: ("blue", "📝"),
+    2: ("yellow", "⚠️"),
+    3: ("red", "🚨"),
+    4: ("red", "🔴"),
+}
+
+
+def send_watchdog_card(title: str, body: str, alert_level: int = 0):
+    """发送看门狗卡片（按反黑箱等级决定颜色）"""
+    template, _ = ALERT_TEMPLATE.get(alert_level, ("blue", "ℹ️"))
     try:
         import urllib.request
         payload = json.dumps({
             "msg_type": "interactive",
             "card": {
-                "header": {"title": {"tag": "plain_text", "content": title}, "template": template},
-                "elements": [{"tag": "markdown", "content": content}, {"tag": "hr"},
-                    {"tag": "note", "elements": [{"tag": "plain_text", "content": f"🐕 看门狗 · {datetime.now().strftime('%H:%M:%S')}"}]}]
+                "header": {
+                    "title": {"tag": "plain_text", "content": title},
+                    "template": template,
+                },
+                "elements": [
+                    {"tag": "markdown", "content": body},
+                    {"tag": "hr"},
+                    {"tag": "note", "elements": [
+                        {"tag": "plain_text", "content": f"🐕 看门狗 · {datetime.now().strftime('%H:%M:%S')}"}
+                    ]}
+                ]
             }
         }).encode("utf-8")
         req = urllib.request.Request(FEISHU_WEBHOOK, data=payload,
@@ -77,6 +110,18 @@ def send_card(title: str, content: str, template: str = "blue"):
             pass
     except Exception:
         pass
+
+
+def get_current_task_info() -> tuple:
+    """获取当前任务信息（用于心跳报告）"""
+    try:
+        state_file = Path(WORKSPACE) / ".monitor_state.json"
+        if state_file.exists():
+            state = json.loads(state_file.read_text())
+            return state.get("last_step", "无"), state.get("last_level", 0)
+    except Exception:
+        pass
+    return "无", 0
 
 
 # ============ 进程管理 ============
@@ -171,13 +216,19 @@ def update_heartbeat(state: Dict, monitor_alive: bool):
 
 
 def send_heartbeat(state: Dict):
-    """发送心跳到飞书"""
+    """发送心跳到飞书（带当前任务风险等级）"""
+    step, level = get_current_task_info()
+    level_names = ["SAFE", "LOW", "MEDIUM", "HIGH", "CRITICAL"]
+    level_name = level_names[level] if level < len(level_names) else "UNKNOWN"
     now = datetime.now().strftime("%H:%M:%S")
     pid = state.get("monitor_pid")
     restarts = state.get("restart_count", 0)
     alive = state.get("monitor_alive", False)
     status = "🟢 存活" if alive else "🔴 已停止"
-    send_simple_msg(f"🐕 看门狗心跳 {now} | 监控进程: {status} | PID: {pid} | 重启: {restarts}次", "HEARTBEAT")
+    send_simple_msg(
+        f"🐕 看门狗心跳 {now} | 监控进程: {status} | PID: {pid} | 重启: {restarts}次 | 当前:{level_name} | {step}",
+        level_name,
+    )
 
 
 # ============ memory 完整性检查（额外功能）============
@@ -220,11 +271,12 @@ def watchdog_loop(daemon: bool = False, once: bool = False):
                 state["last_restart"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
                 print(f"[Watchdog] ⚠️ 监控进程已停止（PID={current_pid}），尝试重启 #{state['restart_count']}")
 
-                send_card(
+                send_watchdog_card(
                     "🐕 看门狗重启监控进程",
-                    f"⚠️ task_monitor 进程已停止（挂了第{state['restart_count']}次）\n\n自动拉起中...",
-                    "yellow"
+                    f"⚠️ task_monitor 进程已停止\n\n挂了第 {state['restart_count']} 次\n\n🔄 自动拉起中...",
+                    alert_level=2,
                 )
+
 
                 new_pid = start_monitor_process()
                 if new_pid:
@@ -238,19 +290,28 @@ def watchdog_loop(daemon: bool = False, once: bool = False):
             # 更新心跳
             update_heartbeat(state, alive)
 
-            # 每 30 秒发送一次心跳
+            # 每 30 秒发送一次心跳（带上当前任务风险等级）
             if time.time() - last_heartbeat >= 30:
-                send_heartbeat(state)
+                step, level = get_current_task_info()
+                level_names = ["SAFE", "LOW", "MEDIUM", "HIGH", "CRITICAL"]
+                level_name = level_names[level] if level < len(level_names) else "UNKNOWN"
+                pid = state.get("monitor_pid")
+                restarts = state.get("restart_count", 0)
+                status_icon = "🟢" if alive else "🔴"
+                send_simple_msg(
+                    f"🐕 心跳 {datetime.now().strftime('%H:%M:%S')} | {status_icon} 监控{'存活' if alive else '停止'} | PID:{pid} | 重启:{restarts}次 | 当前:{level_name} | {step}",
+                    level_names[level] if level < len(level_names) else "INFO",
+                )
                 last_heartbeat = time.time()
 
             # 每 5 分钟检查 memory 完整性
             if time.time() - last_integrity_check >= 300:
                 result = check_memory_integrity()
                 if result.get("status") == "compromised":
-                    send_card(
+                    send_watchdog_card(
                         "🐕 看门狗完整性告警",
                         f"⚠️ memory/ 目录发生变化！\n\n新增: {len(result.get('added', []))}\n篡改: {len(result.get('changed', []))}",
-                        "red"
+                        alert_level=3,
                     )
                 last_integrity_check = time.time()
 

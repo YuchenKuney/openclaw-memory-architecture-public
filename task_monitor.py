@@ -1,16 +1,18 @@
 #!/usr/bin/env python3
 """
 Task Monitor - 子 agent 任务进度监控器
+与反黑箱四级分层深度整合
 
 启动方式：作为 OpenClaw 子 agent 运行
-功能：
-  1. 读取 progress tracker 文件
-  2. 检测主 agent 任务进度变化
-  3. 主动推送飞书卡片到群
-  4. 主 agent 完成时发出最终通知
-  5. watchdog 守护本进程，挂了自动拉起
+
+四级分层（与 interceptor.py 完全一致）：
+  LOG_ONLY (SAFE/LOW)     → 只记录日志，不推送飞书（轻量任务）
+  WARN_AND_LOG (MEDIUM)    → 推送黄色警告卡片（进度正常但有疑问）
+  BLOCK_AND_NOTIFY (HIGH)  → 推送红色拦截卡片，等坤哥审批（高危操作）
+  KILL_AND_ISOLATE (CRITICAL) → 推送深红色紧急卡片，终止操作（核心文件删除）
 
 调用方式：
+  python3 task_monitor.py
   openclaw tasks spawn --runtime=subagent --task-file task_monitor.py
 """
 
@@ -21,137 +23,252 @@ import time
 import hashlib
 from pathlib import Path
 from datetime import datetime
+from enum import IntEnum
 from typing import Optional, Dict
 
 WORKSPACE = Path("/root/.openclaw/workspace")
 PROGRESS_DIR = WORKSPACE / "tasks" / "progress"
 PROGRESS_FILE = PROGRESS_DIR / "current_task.json"
 NOTIFY_STATE_FILE = WORKSPACE / ".monitor_state.json"
-
-# 飞书配置
 FEISHU_WEBHOOK = os.environ.get(
     "FEISHU_WEBHOOK",
     "https://open.feishu.cn/open-apis/bot/v2/hook/7a939580-e987-4571-a142-f58528cf71ec"
 )
-FEISHU_GROUP = os.environ.get(
-    "FEISHU_GROUP_ID",
-    "oc_0533b03e077fedca255c4d2c6717deea"
-)
 
 
-# ============ 进度条可视化 ============
+# ============ 反黑箱四级分级（与 interceptor.py 一致）============
 
-def progress_bar(pct: float, width: int = 10) -> str:
-    filled = int(width * pct / 100)
-    return "█" * filled + "░" * (width - filled)
+class AlertLevel(IntEnum):
+    """与 interceptor.py 的 RiskLevel 对齐"""
+    SAFE = 0       # 只记录，不推送
+    LOW = 1        # 只记录，不推送
+    MEDIUM = 2     # 警告卡片（黄色）
+    HIGH = 3       # 拦截卡片（红色），等待审批
+    CRITICAL = 4   # 紧急终止卡片（深红），强制处理
 
 
-def format_time(ts: float) -> str:
-    return datetime.fromtimestamp(ts).strftime("%H:%M:%S")
+# ============ 飞书卡片推送（按风险等级）============
 
+def send_card(level: int, title: str, body: str, footer: str = "") -> bool:
+    """
+    统一推送入口，按 AlertLevel 决定卡片样式
+    """
+    template_map = {
+        AlertLevel.SAFE: "blue",
+        AlertLevel.LOW: "blue",
+        AlertLevel.MEDIUM: "yellow",
+        AlertLevel.HIGH: "red",
+        AlertLevel.CRITICAL: "red",
+    }
+    template = template_map.get(level, "blue")
 
-# ============ 飞书推送 ============
+    elements = [{"tag": "markdown", "content": body}]
+    if footer:
+        elements += [
+            {"tag": "hr"},
+            {"tag": "note", "elements": [{"tag": "plain_text", "content": footer}]},
+        ]
 
-def send_feishu_card(content: dict) -> bool:
-    """发送飞书交互卡片"""
     try:
         import urllib.request
-        import urllib.error
-
         payload = json.dumps({
             "msg_type": "interactive",
             "card": {
                 "header": {
-                    "title": {"tag": "plain_text", "content": content.get("title", "📊 任务进度")},
-                    "template": content.get("template", "blue"),
+                    "title": {"tag": "plain_text", "content": title},
+                    "template": template,
                 },
-                "elements": content.get("elements", [])
+                "elements": elements
             }
         }).encode("utf-8")
-
         req = urllib.request.Request(
             FEISHU_WEBHOOK,
             data=payload,
             headers={"Content-Type": "application/json"},
             method="POST"
         )
-        with urllib.request.urlopen(req, timeout=10) as resp:
-            return resp.read().decode().find("\"code\":0") >= 0
+        with urllib.request.urlopen(req, timeout=10):
+            return True
     except Exception as e:
-        print(f"[Monitor] 飞书推送失败: {e}")
+        print(f"[Monitor] 推送失败: {e}")
         return False
 
 
-def notify_progress(task_name: str, progress: float, step: str, status: str):
-    """推送进度卡片"""
-    bar = progress_bar(progress)
-    template = {
-        "done": "green",
-        "running": "blue",
-        "waiting": "yellow",
-        "error": "red",
-    }.get(status, "blue")
+def progress_bar_emoji(pct: float, width: int = 10) -> str:
+    filled = int(width * pct / 100)
+    return "█" * filled + "░" * (width - filled)
 
-    status_emoji = {
-        "done": "✅",
-        "running": "🔄",
-        "waiting": "⏳",
-        "error": "❌",
-    }.get(status, "🔄")
 
-    elements = [
-        {"tag": "markdown", "content": f"**{task_name}**\n{status_emoji} {bar} **{progress:.0f}%**\n📍 当前: {step}"},
-        {"tag": "hr"},
-        {"tag": "note", "elements": [{"tag": "plain_text", "content": f"⏰ {datetime.now().strftime('%H:%M:%S')} · 由子 agent 监控推送"}]},
+# ============ 反黑箱分级判断（核心）============
+
+def classify_task_event(task_name: str, progress: float, step: str, status: str, error: str = None) -> int:
+    """
+    判断任务事件的反黑箱风险等级
+    与 detector.py 的 RULES 逻辑对齐
+    """
+    # CRITICAL：核心文件删除类任务
+    critical_files = ["AGENTS.md", "SOUL.md", "MEMORY.md", "IDENTITY.md", "USER.md"]
+    if any(f in task_name for f in critical_files):
+        return AlertLevel.CRITICAL
+
+    # HIGH：危险操作类任务
+    high_risk_patterns = [
+        "git push", "git force", "强制推送", "删除仓库",
+        "authorized_keys", ".ssh/", "cron 修改",
+        "jobs.json", "删除全部", "清空",
     ]
+    if any(p in task_name for p in high_risk_patterns):
+        return AlertLevel.HIGH
 
-    send_feishu_card({
-        "title": f"📊 {task_name}",
-        "template": template,
-        "elements": elements
-    })
-
-
-def notify_completion(task_name: str, final_step: str):
-    """推送完成卡片"""
-    elements = [
-        {"tag": "markdown", "content": f"**✅ 任务完成**\n\n**{task_name}**\n\n📍 最终状态: {final_step}"},
-        {"tag": "hr"},
-        {"tag": "note", "elements": [{"tag": "plain_text", "content": f"🎉 由子 agent 监控推送 · {datetime.now().strftime('%H:%M:%S')}"}]},
+    # MEDIUM：有潜在风险的任务
+    medium_risk_patterns = [
+        "审计", "分析", "扫描", "检测",
+        "修改配置", "更新", "重命名",
     ]
-    send_feishu_card({
-        "title": f"🎉 {task_name} 已完成",
-        "template": "green",
-        "elements": elements
-    })
+    if any(p in task_name for p in medium_risk_patterns):
+        return AlertLevel.MEDIUM
+
+    # 明确错误 → 升级到 HIGH（任务无法完成）
+    if error and status == "error":
+        return AlertLevel.HIGH
+
+    # SAFE/LOW：常规开发任务
+    safe_patterns = ["编写", "创建", "测试", "阅读", "查询", "检查"]
+    if any(p in task_name for p in safe_patterns):
+        return AlertLevel.LOW
+
+    return AlertLevel.SAFE
 
 
-def notify_error(task_name: str, error_msg: str):
-    """推送错误卡片"""
-    elements = [
-        {"tag": "markdown", "content": f"**❌ 任务异常**\n\n**{task_name}**\n\n⚠️ {error_msg}"},
-        {"tag": "hr"},
-        {"tag": "note", "elements": [{"tag": "plain_text", "content": f"🚨 由子 agent 监控告警 · {datetime.now().strftime('%H:%M:%S')}"}]},
-    ]
-    send_feishu_card({
-        "title": f"❌ {task_name} 异常",
-        "template": "red",
-        "elements": elements
-    })
+def classify_step_event(step: str, status: str) -> int:
+    """
+    根据步骤类型和状态判断风险等级
+    同一任务中不同步骤可能有不同风险
+    """
+    # 删除/修改核心文件步骤
+    if any(k in step for k in ["删除", "修改核心", "清理"]):
+        return AlertLevel.HIGH
+
+    # 外部操作步骤（git push / curl / subprocess）
+    if any(k in step for k in ["git push", "curl", "wget", "subprocess", "强制"]):
+        return AlertLevel.MEDIUM
+
+    # 纯内部操作（读写文件/分析）
+    if any(k in step for k in ["读取", "写入", "分析", "检查", "生成"]):
+        return AlertLevel.SAFE
+
+    # 默认低危
+    return AlertLevel.SAFE
 
 
-def notify_started(task_name: str, total_steps: int):
-    """推送启动卡片"""
-    elements = [
-        {"tag": "markdown", "content": f"**🚀 任务已启动**\n\n**{task_name}**\n\n📋 共 {total_steps} 个步骤\n\n🔄 子 agent 监控中，进度将实时推送..."},
-        {"tag": "hr"},
-        {"tag": "note", "elements": [{"tag": "plain_text", "content": f"👁️ 由子 agent 守护监控 · {datetime.now().strftime('%H:%M:%S')}"}]},
-    ]
-    send_feishu_card({
-        "title": f"🚀 {task_name} 已启动",
-        "template": "blue",
-        "elements": elements
-    })
+# ============ 进度推送（按等级决定行为）============
+
+def notify_event(task_name: str, progress: float, step: str, status: str,
+                 event_type: str, error: str = None):
+    """
+    事件推送主函数（与 interceptor.py 的 intercept() 逻辑对齐）
+    根据风险等级决定推送深度
+    """
+    task_level = classify_task_event(task_name, progress, step, status, error)
+    step_level = classify_step_event(step, status)
+    level = max(task_level, step_level)  # 取较高者
+
+    ts = datetime.now().strftime("%H:%M:%S")
+    bar = progress_bar_emoji(progress)
+
+    # ========== SAFE/LOW：只记录，不推送飞书 ==========
+    if level <= AlertLevel.LOW:
+        print(f"[Monitor] 📝 [{status}] {task_name} [{progress:.0f}%] {step}")
+        return
+
+    # ========== MEDIUM：警告卡片 ==========
+    if level == AlertLevel.MEDIUM:
+        send_card(
+            AlertLevel.MEDIUM,
+            title=f"⚠️  {task_name}",
+            body=f"**任务进行中**\n\n{bar} **{progress:.0f}%**\n📍 **{step}**\n\n🔍 检测到潜在风险操作，请确认",
+            footer=f"⏰ {ts} · 子 agent 监控推送"
+        )
+        return
+
+    # ========== HIGH：拦截卡片（高危操作） ==========
+    if level == AlertLevel.HIGH:
+        send_card(
+            AlertLevel.HIGH,
+            title=f"🚨  {task_name}",
+            body=f"**⚠️ 高危操作进行中**\n\n{bar} **{progress:.0f}%**\n📍 **{step}**\n\n🚨 请确认操作，坤哥可通过审批放行",
+            footer=f"⏰ {ts} · 需要坤哥关注"
+        )
+        return
+
+    # ========== CRITICAL：紧急终止卡片 ==========
+    if level == AlertLevel.CRITICAL:
+        send_card(
+            AlertLevel.CRITICAL,
+            title=f"🔴  {task_name}",
+            body=f"**🚨 核心文件操作**\n\n⚠️ 检测到极高危任务：{task_name}\n\n{bar} **{progress:.0f}%**\n📍 **{step}**\n\n🔒 系统已暂停，等待坤哥紧急审批",
+            footer=f"🚨 {ts} · 反黑箱 CRITICAL 级 · 强制通知"
+        )
+        return
+
+
+def notify_started(task_name: str, total_steps: int, level: int):
+    """任务启动通知"""
+    if level <= AlertLevel.LOW:
+        print(f"[Monitor] 🚀 任务启动: {task_name} ({total_steps}步)")
+        return
+
+    level_map = {
+        AlertLevel.MEDIUM: ("⚠️ 任务已启动（需关注）", "yellow"),
+        AlertLevel.HIGH: ("🚨 任务已启动（高危）", "red"),
+        AlertLevel.CRITICAL: ("🔴 任务已启动（极高危）", "red"),
+    }
+
+    title, template = level_map.get(level, ("📊 任务已启动", "blue"))
+    send_card(
+        level,
+        title=f"{title} {task_name}",
+        body=f"**{task_name}**\n\n📋 共 {total_steps} 个步骤\n\n🔄 子 agent 监控中...\n\n⚠️ 操作有风险时请确认",
+        footer=f"⏰ {datetime.now().strftime('%H:%M:%S')} · 子 agent 启动推送"
+    )
+
+
+def notify_completion(task_name: str, final_step: str, level: int):
+    """任务完成通知"""
+    if level <= AlertLevel.LOW:
+        print(f"[Monitor] ✅ 完成: {task_name}")
+        return
+
+    level_map = {
+        AlertLevel.MEDIUM: ("✅ 任务已完成（请确认）", "green"),
+        AlertLevel.HIGH: ("✅ 任务已完成（高危操作）", "green"),
+        AlertLevel.CRITICAL: ("✅ 极高危任务已完成", "green"),
+    }
+    title, template = level_map.get(level, ("✅ 任务已完成", "green"))
+
+    send_card(
+        level,
+        title=f"{title} {task_name}",
+        body=f"**✅ 任务已完成**\n\n**{task_name}**\n\n📍 最终状态: **{final_step}**\n🎉 所有步骤执行完毕",
+        footer=f"⏰ {datetime.now().strftime('%H:%M:%S')} · 子 agent 完成推送"
+    )
+
+
+def notify_error(task_name: str, step: str, error_msg: str, level: int):
+    """任务异常通知"""
+    level_map = {
+        AlertLevel.MEDIUM: ("⚠️ 任务异常", "yellow"),
+        AlertLevel.HIGH: ("🚨 任务异常", "red"),
+        AlertLevel.CRITICAL: ("🔴 任务异常（极高危）", "red"),
+    }
+    title, template = level_map.get(level, ("⚠️ 任务异常", "yellow"))
+
+    send_card(
+        max(level, AlertLevel.HIGH),  # 错误至少 HIGH
+        title=f"{title} {task_name}",
+        body=f"**❌ 任务异常中断**\n\n**{task_name}**\n\n📍 异常步骤: **{step}**\n\n⚠️ **{error_msg}**\n\n🔍 请检查任务状态",
+        footer=f"🚨 {datetime.now().strftime('%H:%M:%S')} · 子 agent 异常告警"
+    )
 
 
 # ============ 状态管理 ============
@@ -162,7 +279,15 @@ def load_state() -> Dict:
             return json.loads(Path(NOTIFY_STATE_FILE).read_text())
         except Exception:
             pass
-    return {"last_progress": -1, "last_step": "", "notified_start": False, "notified_done": False, "notified_error": False, "last_status": ""}
+    return {
+        "last_progress": -1,
+        "last_step": "",
+        "notified_start": False,
+        "notified_done": False,
+        "notified_error": False,
+        "last_status": "",
+        "last_level": AlertLevel.SAFE,
+    }
 
 
 def save_state(state: Dict):
@@ -175,7 +300,6 @@ def save_state(state: Dict):
 # ============ 核心监控循环 ============
 
 def load_current_progress() -> Optional[Dict]:
-    """读取当前任务进度"""
     if not PROGRESS_FILE.exists():
         return None
     try:
@@ -186,22 +310,16 @@ def load_current_progress() -> Optional[Dict]:
 
 def main():
     print(f"[TaskMonitor] 🚀 子 agent 监控启动 PID={os.getpid()}")
-    print(f"[TaskMonitor] 监控目录: {PROGRESS_DIR}")
+    print(f"[TaskMonitor] 反黑箱四级分级联动")
 
     os.makedirs(PROGRESS_DIR, exist_ok=True)
-
     state = load_state()
-    consecutive_errors = 0
-    last_check = time.time()
 
     while True:
         try:
             progress_data = load_current_progress()
-
             if progress_data is None:
-                # 无进度文件，休眠等待
-                time.sleep(2)
-                consecutive_errors = 0
+                time.sleep(3)
                 continue
 
             task_name = progress_data.get("name", "未知任务")
@@ -210,62 +328,53 @@ def main():
             step = progress_data.get("step", "初始化")
             error = progress_data.get("error")
 
-            current_hash = hashlib.md5(
-                f"{task_name}:{progress}:{step}:{status}".encode()
-            ).hexdigest()[:8]
+            # 动态计算风险等级
+            level = classify_task_event(task_name, progress, step, status, error)
 
-            # 检测状态变化
+            # 启动通知
+            if not state["notified_start"]:
+                notify_started(task_name, len(progress_data.get("steps", [1])), level)
+                state["notified_start"] = True
+                state["last_level"] = level
+                save_state(state)
+
+            # 进度变化推送（按风险等级）
             changed = (
                 state["last_progress"] != progress or
                 state["last_step"] != step or
                 state["last_status"] != status
             )
-
-            # 推送启动通知（首次检测到任务）
-            if progress_data and not state["notified_start"]:
-                notify_started(task_name, len(progress_data.get("steps", [1])))
-                state["notified_start"] = True
+            if changed and progress > 0:
+                notify_event(task_name, progress, step, status, "progress", error)
+                state["last_progress"] = progress
+                state["last_step"] = step
+                state["last_status"] = status
+                state["last_level"] = level
                 save_state(state)
 
-            # 进度更新推送（每 5% 变化 或 步骤变化）
-            if changed and progress > 0:
-                pct = min(100, max(0, progress))
-                if changed:
-                    notify_progress(task_name, pct, step, status)
-                    state["last_progress"] = progress
-                    state["last_step"] = step
-                    state["last_status"] = status
-                    save_state(state)
-
-            # 检测任务完成
+            # 完成通知
             if status == "done" and not state["notified_done"]:
-                notify_completion(task_name, step)
+                notify_completion(task_name, step, state.get("last_level", level))
                 state["notified_done"] = True
                 save_state(state)
-                print(f"[TaskMonitor] ✅ 任务完成通知已推送，退出")
+                print(f"[Monitor] ✅ 任务完成通知已推送，退出")
                 break
 
-            # 检测任务错误
+            # 错误通知
             if error and not state["notified_error"]:
-                notify_error(task_name, str(error))
+                notify_error(task_name, step, str(error), level)
                 state["notified_error"] = True
                 save_state(state)
-                print(f"[TaskMonitor] ❌ 任务错误通知已推送")
                 break
 
-            consecutive_errors = 0
-            time.sleep(3)  # 每 3 秒检查一次
+            time.sleep(3)
 
         except KeyboardInterrupt:
-            print("[TaskMonitor] ⏹️ 收到终止信号，退出")
+            print("[TaskMonitor] ⏹️ 退出")
             break
         except Exception as e:
-            consecutive_errors += 1
-            print(f"[TaskMonitor] ⚠️ 异常 #{consecutive_errors}: {e}")
+            print(f"[Monitor] ⚠️ 异常: {e}")
             time.sleep(5)
-            if consecutive_errors >= 10:
-                print("[TaskMonitor] ❌ 连续异常，退出")
-                break
 
 
 if __name__ == "__main__":

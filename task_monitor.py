@@ -28,7 +28,7 @@ from typing import Optional, Dict
 
 WORKSPACE = Path("/root/.openclaw/workspace")
 PROGRESS_DIR = WORKSPACE / "tasks" / "progress"
-PROGRESS_FILE = PROGRESS_DIR / "current_task.json"
+PROGRESS_FILE = PROGRESS_DIR / "current_task.json"  # 备用兜底路径
 NOTIFY_STATE_FILE = WORKSPACE / ".monitor_state.json"
 FEISHU_WEBHOOK = os.environ.get(
     "FEISHU_WEBHOOK",
@@ -287,6 +287,7 @@ def load_state() -> Dict:
         "notified_error": False,
         "last_status": "",
         "last_level": AlertLevel.SAFE,
+        "last_jobId": None,
     }
 
 
@@ -300,12 +301,66 @@ def save_state(state: Dict):
 # ============ 核心监控循环 ============
 
 def load_current_progress() -> Optional[Dict]:
-    if not PROGRESS_FILE.exists():
-        return None
-    try:
-        return json.loads(PROGRESS_FILE.read_text())
-    except Exception:
-        return None
+    """
+    扫描 tasks/progress/*.json 获取最新活跃任务
+    策略：
+    1. 先找 current_task.json（备用兜底）
+    2. 再扫所有 {job_id}.json，找最新修改的
+    3. 跳过已完成/错误超过10分钟的任务
+    """
+    if PROGRESS_DIR.exists():
+        candidates = []
+        for pf in PROGRESS_DIR.glob("*.json"):
+            try:
+                data = json.loads(pf.read_text())
+                if not data.get("jobId"):
+                    continue
+                # 跳过已完成/错误超过10分钟的任务
+                status = data.get("status", "")
+                if status in ("done", "error"):
+                    updated = data.get("updatedAt", 0)
+                    if isinstance(updated, str):
+                        try:
+                            updated = datetime.fromisoformat(updated).timestamp()
+                        except Exception:
+                            updated = 0
+                    if time.time() - updated > 600:
+                        continue
+                candidates.append((pf.stat().st_mtime, data))
+            except Exception:
+                continue
+
+        if candidates:
+            # 按最后修改时间排序，取最新
+            candidates.sort(key=lambda x: x[0], reverse=True)
+            latest_data = candidates[0][1]
+            # 重命名为统一字段方便后续使用
+            return {
+                "name": latest_data.get("name", latest_data.get("jobId", "任务")),
+                "progress": latest_data.get("progress", 0),
+                "status": latest_data.get("status", "running"),
+                "step": latest_data.get("step", latest_data.get("currentStep", "")),
+                "error": latest_data.get("error"),
+                "jobId": latest_data.get("jobId"),
+            }
+
+
+    # 兜底：current_task.json
+    if PROGRESS_FILE.exists():
+        try:
+            data = json.loads(PROGRESS_FILE.read_text())
+            return {
+                "name": data.get("name", data.get("jobId", "任务")),
+                "progress": data.get("progress", 0),
+                "status": data.get("status", "running"),
+                "step": data.get("step", data.get("currentStep", "")),
+                "error": data.get("error"),
+                "jobId": data.get("jobId"),
+            }
+        except Exception:
+            pass
+
+    return None
 
 
 def main():
@@ -333,9 +388,11 @@ def main():
 
             # 启动通知
             if not state["notified_start"]:
-                notify_started(task_name, len(progress_data.get("steps", [1])), level)
+                total_steps = len(progress_data.get("steps", progress_data.get("totalSteps", [1])))
+                notify_started(task_name, total_steps, level)
                 state["notified_start"] = True
                 state["last_level"] = level
+                state["last_jobId"] = progress_data.get("jobId")
                 save_state(state)
 
             # 进度变化推送（按风险等级）
@@ -352,13 +409,24 @@ def main():
                 state["last_level"] = level
                 save_state(state)
 
-            # 完成通知
-            if status == "done" and not state["notified_done"]:
+            # 检测任务完成（基于 jobId 判断是否是同一个任务）
+            job_id = progress_data.get("jobId")
+            last_job_id = state.get("last_jobId")
+            if status == "done" and not state["notified_done"] and (job_id == last_job_id or not last_job_id):
                 notify_completion(task_name, step, state.get("last_level", level))
                 state["notified_done"] = True
                 save_state(state)
                 print(f"[Monitor] ✅ 任务完成通知已推送，退出")
                 break
+
+            # 检测新任务开始（jobId 变化了，重置通知状态）
+            if job_id and last_job_id and job_id != last_job_id:
+                state["notified_done"] = False
+                state["notified_error"] = False
+                state["notified_start"] = False
+                print(f"[Monitor] 🔄 检测到新任务 {job_id}，重置通知状态")
+
+            state["last_jobId"] = job_id
 
             # 错误通知
             if error and not state["notified_error"]:

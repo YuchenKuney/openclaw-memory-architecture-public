@@ -157,6 +157,64 @@ class FeishuNotifier:
         except Exception as e:
             print(f"[Notifier] 发送失败: {e}")
 
+    def notify_cron_event(self, file_path, event_type):
+        """
+        发送 Cron 事件通知（解析 cron-events/ 目录下的 JSON 文件）
+        """
+        import urllib.request
+        import urllib.parse
+        try:
+            with open(file_path, 'r', encoding='utf-8') as f:
+                content = f.read().strip()
+
+            # 尝试解析 JSON
+            try:
+                data = json.loads(content)
+                job_name = data.get('job', '未知任务')
+                status = data.get('status', event_type.lower())
+                message = data.get('message', '')
+                triggered_at = data.get('triggeredAt', '')
+            except json.JSONDecodeError:
+                job_name = content
+                status = event_type.lower()
+                message = ''
+                triggered_at = ''
+
+            # 根据状态决定颜色和 emoji
+            status_config = {
+                'fired': ('🟢 任务触发', 'green'),
+                'running': ('🔵 进行中', 'blue'),
+                'done': ('✅ 任务完成', 'green'),
+                'error': ('🔴 任务异常', 'red'),
+            }
+            title, color = status_config.get(status, ('📋 任务事件', 'grey'))
+
+            elements = [
+                {"tag": "markdown", "content": f"**任务**: `{job_name}`"},
+                {"tag": "markdown", "content": f"**状态**: `{status.upper()}`"},
+            ]
+            if triggered_at:
+                elements.append({"tag": "markdown", "content": f"**触发时间**: `{triggered_at}`"})
+            if message:
+                elements.append({"tag": "markdown", "content": f"**详情**: {message}"}
+            )
+            elements.append({"tag": "hr"})
+            elements.append({"tag": "markdown", "content": f"来源: `cron-events/` 监控"})
+
+            card = {
+                "msg_type": "interactive",
+                "card": {
+                    "header": {
+                        "title": {"tag": "plain_text", "content": title},
+                        "template": color,
+                    },
+                    "elements": elements
+                }
+            }
+            self._send_card(card)
+        except Exception as e:
+            print(f"[Notifier] Cron事件通知失败: {e}")
+
     def notify_git_operation(self, operation, target, remote):
         """
         发送 Git 操作通知

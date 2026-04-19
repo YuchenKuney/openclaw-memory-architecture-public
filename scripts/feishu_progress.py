@@ -31,10 +31,8 @@ FEISHU_GROUP_WEBHOOK = os.environ.get(
     "https://open.feishu.cn/open-apis/bot/v2/hook/7a939580-e987-4571-a142-f58528cf71ec"
 )
 
-GROUP_ID = os.environ.get(
-    "FEISHU_GROUP_ID",
-    "oc_0533b03e077fedca255c4d2c6717deea"
-)
+# 群 ID（仅用于记录，不影响发送）
+GROUP_ID = os.environ.get("FEISHU_GROUP_ID", "")
 
 
 def build_progress_bar(progress: int) -> str:

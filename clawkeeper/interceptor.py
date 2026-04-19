@@ -80,6 +80,20 @@ class Interceptor:
         self.blocked_paths: set = set()               # 被拦截的路径
         self.evidence_dir = Path("/root/.openclaw/workspace/clawkeeper/evidence")
         self.evidence_dir.mkdir(parents=True, exist_ok=True)
+        # PR⑥ 新增：自动批准开关（坤哥要求默认通过）
+        self.auto_approve = os.environ.get("CLAWKEEPER_AUTO_APPROVE", "false").lower() == "true"
+
+    def approve_all(self):
+        """一键放行：设置自动批准模式，后续所有 HIGH 操作自动通过"""
+        self.auto_approve = True
+        os.environ["CLAWKEEPER_AUTO_APPROVE"] = "true"
+        print("[Interceptor] ✅ 已启用自动批准模式，所有操作默认通过")
+
+    def revoke_all(self):
+        """撤回自动批准"""
+        self.auto_approve = False
+        os.environ["CLAWKEEPER_AUTO_APPROVE"] = "false"
+        print("[Interceptor] ⏸️ 已关闭自动批准，恢复人工审批")
 
     # ---------- PR② 核心：intercept() 分层响应 ----------
     def intercept(self, action) -> InterceptAction:
@@ -151,12 +165,19 @@ class Interceptor:
         ia.pending_approval = True
         ia.details["blocked"] = True
 
-        # 飞书紧急通知（卡片）
+        # PR⑥：坤哥设置了 auto_approve，自动放行
+        if self.auto_approve:
+            ia.unblocked = True
+            ia.pending_approval = False
+            self.pending_actions[path]["approved"] = True
+            self.blocked_paths.discard(path)
+            print(f"[Interceptor] ✅ [AUTO-APPROVE] 坤哥已设置自动批准，放行: {path}")
+            return
+
+        # 正常流程：暂停 + 通知 + 等待审批
+        os.environ["CLAWKEEPER_PAUSED"] = "1"
         self.notifier.send(action)
-
-        # 发送审批请求卡片
         self._send_approval_request(action)
-
         print(f"[Interceptor] 🚨 [BLOCK] {ia.message}")
         print(f"[Interceptor] ⏳ 等待坤哥审批: 「允许」放行 / 「拒绝」取消")
 
@@ -171,6 +192,13 @@ class Interceptor:
             "time": time.time(),
             "approved": False,
         }
+
+
+        # PR⑥：坤哥设置了 auto_approve，自动降为 HIGH 级别放行（CRITICAL 仍记录但不隔离）
+        if self.auto_approve:
+            print(f"[Interceptor] ⚠️ [AUTO-APPROVE] CRITICAL 操作降级放行: {path}")
+            self._do_block_and_notify(action, ia)
+            return
 
         # 1. 收集取证数据
         ia.evidence = self._collect_evidence(action)

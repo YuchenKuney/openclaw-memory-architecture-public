@@ -394,4 +394,125 @@ python3 clawkeeper/user_profile.py --check "git"
 
 ---
 
+## Task Monitor + Task Watchdog（子 agent 主动监控）
+
+### 核心理念
+
+子 agent 实时监控主 agent 任务进度，主动推送飞书卡片，watchdog 守护子 agent 不挂。
+
+### 三进程架构
+
+```
+主 agent（坤哥的 AI）
+    ↓ 写入 progress tracker
+tasks/progress/current_task.json
+    ↓
+子 agent（task_monitor.py）
+    → 检测进度变化 → 主动飞书推送
+    → 任务完成 → 推送完成卡片
+    ↓ 守护
+看门狗（task_watchdog.py）
+    → 监控子 agent 进程
+    → 挂了自动拉起
+    → 每 30 秒飞书心跳
+    → 每 5 分钟 memory 完整性检查
+```
+
+### 进程职责
+
+| 进程 | 文件 | 职责 |
+|------|------|------|
+| 主 agent | OpenClaw | 执行任务，写入 progress |
+| 子 agent | `task_monitor.py` | 实时监控进度，主动推送飞书 |
+| 看门狗 | `task_watchdog.py` | 守护子 agent 不挂 |
+
+### 进度推送流程
+
+```
+主 agent 任务进行中
+    ↓ 每步写入
+tasks/progress/current_task.json  {"name", "progress", "step", "status"}
+    ↓ 每 3 秒轮询
+task_monitor.py 子 agent
+    ↓ 进度变化时主动推送
+飞书群卡片（实时）
+    ↓
+坤哥在飞书看到完整进度
+```
+
+### task_monitor.py 功能
+
+```bash
+python3 task_monitor.py          # 前台运行
+# 推送内容：
+#   🚀 任务启动卡片
+#   📊 实时进度卡片（每步变化）
+#   ✅ 任务完成卡片
+#   ❌ 任务错误卡片
+```
+
+### task_watchdog.py 功能
+
+```bash
+python3 task_watchdog.py --daemon   # 后台常驻
+python3 task_watchdog.py --once     # 单次检测（调试）
+
+
+# 守护内容：
+#   - 子 agent 进程存活检测（每 5 秒）
+#   - 进程挂了自动拉起
+#   - 每 30 秒飞书心跳
+#   - 每 5 分钟 memory 完整性校验
+```
+
+### 推送卡片示例
+
+**启动：**
+```
+🚀 {task_name} 已启动
+
+📋 共 N 个步骤
+🔄 子 agent 监控中，进度将实时推送...
+```
+
+**进度更新：**
+```
+{task_name}
+🔄 [████████░░] 80%
+📍 当前: Step 3/4 - 执行代码
+```
+
+**完成：**
+```
+✅ 任务完成
+
+{task_name}
+
+📍 最终状态: 已推送到 GitHub
+```
+
+
+### 启动方式
+
+**方式一：看门狗自动守护**
+```bash
+python3 task_watchdog.py --daemon
+# 自动启动 monitor，自动拉起挂了的服务
+```
+
+**方式二：手动启动 monitor**
+```bash
+python3 task_monitor.py
+# 配合 watchdog 使用
+```
+
+
+**方式三：OpenClaw subagent**
+```bash
+# 在 OpenClaw 中启动子 agent
+openclaw tasks spawn --runtime=subagent --task-file task_monitor.py
+```
+
+---
+
 _Last updated: 2026-04-19_

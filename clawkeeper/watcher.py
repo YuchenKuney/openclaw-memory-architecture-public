@@ -57,6 +57,33 @@ class ClawWatcher:
         self.running = False
         self._thread = None
         
+    def _handle_progress_event(self, path, event_type):
+        """
+        处理 tasks/progress/ 目录下的进度文件变化
+        解析 JSON → 推送群聊进度卡片
+        """
+        import json as _json
+        try:
+            with open(path, 'r', encoding='utf-8') as f:
+                data = _json.load(f)
+
+            job_name = data.get('jobName', '未知任务')
+            progress = data.get('progress', 0)
+            step = data.get('step', '')
+            message = data.get('message', '')
+            status = data.get('status', 'running')
+
+            # 只在 running 状态推送进度
+            if status == 'running':
+                self.notifier.notify_group_progress(job_name, progress, step, message)
+            elif status == 'done':
+                self.notifier.notify_group_progress(job_name, 100, '✅ 已完成', message)
+            elif status == 'error':
+                self.notifier.notify_group_progress(job_name, progress, '🔴 任务异常', message)
+
+        except Exception as e:
+            print(f"[Watcher] 进度事件处理异常: {e}")
+
     def is_protected_path(self, path):
         """检查路径是否受保护"""
         path = Path(path).resolve()
@@ -93,6 +120,11 @@ class ClawWatcher:
             self.notifier.notify_cron_event(str(path), event_type)
             return None
 
+        # tasks/progress/ 目录的事件 → 解析进度 JSON → 推送群聊卡片
+        if category == "CORE_DIR" and "tasks/progress" in str(path):
+            self._handle_progress_event(str(path), event_type)
+            return None
+
         # 交给检测器判断
         action = self.detector.evaluate(event_info)
 
@@ -102,32 +134,68 @@ class ClawWatcher:
         return action
         
     def watch_inotify(self):
-        """使用 inotify 监控"""
+        """
+        使用 inotify 监控
+        使用 Inotify() + 手动管理目录监控，
+        解决 InotifyTree 无法自动监控新建子目录的问题
+        """
         if not INOTIFY_AVAILABLE:
             print("ERROR: inotify not available. Using fallback polling.")
             return self.watch_fallback()
-            
-        # InotifyTree 自动递归监控整个目录树
-        i = inotify.adapters.InotifyTree(str(self.workspace))
-            
+
+        import inotify.constants as constants
+
+        # 使用 Inotify() 而非 InotifyTree，手动管理每个目录的监控
+        i = inotify.adapters.Inotify()
+
+        # 递归添加监控（深度3层）
+        def add_tree_watches(base_path, depth=0, max_depth=3):
+            try:
+                i.add_watch(base_path,
+                    constants.IN_CREATE | constants.IN_DELETE |
+                    constants.IN_MODIFY | constants.IN_MOVED_FROM | constants.IN_MOVED_TO)
+                print(f"[ClawWatcher] +监控: {base_path}")
+            except Exception as e:
+                print(f"[ClawWatcher] 添加监控失败: {base_path}: {e}")
+                return
+            if depth < max_depth:
+                try:
+                    for entry in os.scandir(base_path):
+                        if entry.is_dir() and not entry.name.startswith('.'):
+                            add_tree_watches(entry.path, depth + 1, max_depth)
+                except PermissionError:
+                    pass
+
+        add_tree_watches(str(self.workspace))
+
         self.running = True
         print(f"[ClawWatcher] 监控中: {self.workspace}")
-        
+
         try:
             for event in i.event_gen():
                 if not self.running:
                     break
-                    
                 if event is None:
                     continue
-                    
+
                 (header, type_names, path, filename) = event
                 full_path = os.path.join(path, filename) if filename else path
-                
+
+                # 如果新建了子目录，立即添加监控
+                for event_name in type_names:
+                    if event_name == 'IN_ISDIR' and 'IN_CREATE' in type_names:
+                        try:
+                            i.add_watch(full_path,
+                                constants.IN_CREATE | constants.IN_DELETE |
+                                constants.IN_MODIFY | constants.IN_MOVED_FROM | constants.IN_MOVED_TO)
+                            print(f"[ClawWatcher] +新目录监控: {full_path}")
+                        except Exception as e:
+                            pass
+
                 for event_name in type_names:
                     if event_name in INOTIFY_EVENTS:
                         self.handle_event(full_path, INOTIFY_EVENTS[event_name])
-                        
+
         except Exception as e:
             print(f"[ClawWatcher] 监控异常: {e}")
         finally:

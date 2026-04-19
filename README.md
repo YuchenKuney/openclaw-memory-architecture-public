@@ -5,13 +5,13 @@
 > ⚠️ **免责声明**：本项目由个人开发，食用前请先备份重要数据，以免数据丢失！
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Version: v8.0](https://img.shields.io/badge/Version-v8.0-blue.svg)]
+[![Version: v9.0](https://img.shields.io/badge/Version-v9.0-blue.svg)]
 
 ## 🌟 简介
 
 OpenClaw 记忆架构是一套用于 AI Agent 的**持久化记忆系统**，支持多层记忆管理、多智能体协作和实时进度追踪。
 
-**v8 版本核心**：反黑箱安全审计（AI行为全透明）+ 主动进度反馈机制（cron 安全网 + 主动汇报）
+**v9 版本核心**：反黑箱安全审计 + 给AI装一双眼睛（Web4.0 AI Agent 沙箱无头浏览器）
 
 ## 🏗️ 整体架构
 
@@ -122,6 +122,15 @@ realtime_agent/
 | `config.py` | 动态配置管理 |
 | `responder.py` | 自动审核响应器（处理允许/拒绝指令）|
 
+### 8. Web4.0 AI 视觉（根目录）
+
+| 文件 | 作用 |
+|------|------|
+| `web4_browser.py` | Playwright 无头浏览器 + 浏览器池 |
+| `web4_container.py` | Linux Namespace 沙箱容器 |
+| `web4_controller.py` | AI 研究接口（research函数）|
+| `web4_cooker.py` | Cooking 注入引擎 |
+
 | 文件 | 作用 |
 |------|------|
 | `task_push.sh` | 任务进度主动推送（每 step 完成即推送）|
@@ -218,6 +227,7 @@ route: feishu:direct:ou_xxx
 | v6 | 图检索 + 反思引擎 |
 | **v7** | **主动进度反馈 + 任务状态结构化** |
 | **v8** | **反黑箱安全审计（AI行为全透明 + inotify监控 + 风险分级 + 人工审核）** |
+| **v9** | **给AI装一双眼睛：Web4.0 AI Agent 沙箱无头浏览器 + Cooking 注入引擎** |
 
 ## 🛡️ 反黑箱安全审计（V8 核心）
 
@@ -286,6 +296,75 @@ python3 -c "from config import ClawkeeperConfig; \
     config = ClawkeeperConfig(); \
     config.set_notification_level('MEDIUM')"
 ```
+
+## 🌐 Web4.0 AI Agent 沙箱无头浏览器（V9 核心）
+
+> **给AI装一双眼睛** — AI 可以在沙箱隔离环境中自主浏览网页、提取内容、分析研究
+
+### 核心架构
+
+```
+坤哥的 AI Agent（我）
+    ↓ 调用 web4_controller.research()
+web4_browser.py（浏览器池，3个并发实例）
+    ↓ 运行在
+web4_container.py（Linux Namespace 沙箱）
+    ├── 独立网络栈 + IPv6 ULA 地址
+    ├── Seccomp 系统调用过滤
+    └── 沙箱外无法访问宿主机资源
+    ↓ cooking 注入
+web4_cooker.py（坤哥的烹饪配方）
+```
+
+### 文件说明
+
+| 文件 | 职责 |
+|------|------|
+| `web4_browser.py` | Playwright 无头浏览器 + 浏览器池 + stealth 反爬 |
+| `web4_container.py` | Linux Namespace 沙箱（网络/PID/挂载隔离） |
+| `web4_controller.py` | AI 研究接口 `research(query, sites, cooking)` |
+| `web4_cooker.py` | Cooking 注入引擎（坤哥配置 AI 研究行为） |
+
+### Cooking 预设
+
+| 预设 | 语言 | 策略 | 适用场景 |
+|------|------|------|---------|
+| `中文优先` | zh | standard | 中文资讯、最新 |
+| `学术研究` | en | deep | arXiv / Nature 等学术站 |
+| `快速扫描` | any | brief | 快速摸底 |
+| `最新资讯` | zh | standard | 新闻、热点 |
+| `技术深度` | en | deep | 深度技术分析 |
+| `无图模式` | any | standard | 节省流量 |
+
+### AI 用法示例
+
+```python
+# 坤哥说："研究量子计算最新进展，用中文优先"
+from web4_controller import research
+
+result = research(
+    query="量子计算最新进展",
+    sites=["nature.com", "arxiv.org"],
+    cooking={
+        "language": "zh",
+        "strategy": "deep",
+        "priority": "latest",
+        "max_pages": 10,
+    }
+)
+
+# 结果自动保存到 web4_sandbox/results/
+# 每页提取：标题、正文、链接、截图、网络行为
+```
+
+### 隔离安全特性
+
+- **Namespace 隔离**：PID / Network / Mount / IPC / UTS / User
+- **Seccomp 过滤**：只允许 ~100 个安全系统调用，禁止 mount/sys_admin/ptrace
+- **IPv6 ULA**：每容器分配唯一 `fd00:dead:beef:{hash}::1`
+- **非 root 运行**：容器内用户映射为普通用户
+
+---
 
 ## 🚀 快速开始
 

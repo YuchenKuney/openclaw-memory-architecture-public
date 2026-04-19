@@ -33,12 +33,22 @@ def write_progress(job_id, data):
         json.dump(data, f, ensure_ascii=False, indent=2)
     return job_file
 
+def sanitize_job_id(name):
+    """将任务名转换为合法的 job_id（用于文件命名）"""
+    # 替换空格和特殊字符，保留中文、英文、数字
+    import re
+    s = re.sub(r'[^\w\u4e00-\u9fff-]', '_', name)
+    s = re.sub(r'_+', '_', s).strip('_')
+    return s or "unnamed_task"
+
 def start_job(job_name, message=""):
     """开始一个新任务"""
-    job_id = f"{datetime.now().strftime('%Y%m%d%H%M%S')}"
+    safe_id = sanitize_job_id(job_name)
+    # 避免文件名冲突：加时间戳后缀
+    job_id = f"{safe_id}_{datetime.now().strftime('%H%M%S')}"
     data = {
         "jobId": job_id,
-        "jobName": job_name,
+        "name": job_name,          # 人类可读的任务名（供 watcher 读取）
         "status": "running",
         "progress": 0,
         "step": "开始执行",
@@ -50,7 +60,8 @@ def start_job(job_name, message=""):
         ]
     }
     write_progress(job_id, data)
-    print(f"✅ 任务已创建: {job_id} ({job_name})")
+    print(f"✅ 任务已创建: {job_id} | {job_name}")
+    print(f"JOB_ID={job_id}")  # 供自动化脚本解析
     return job_id
 
 def update_job(job_id, progress, step, message=""):
@@ -127,7 +138,7 @@ def list_jobs():
         print("无活跃任务")
     else:
         for j in jobs:
-            print(f"  [{j['progress']:3d}%] {j['jobName']} | {j['step']} | {j['jobId']}")
+            print(f"  [{j['progress']:3d}%] {j.get('name', j.get('jobName', '?'))} | {j['step']} | {j['jobId']}")
 
 if __name__ == "__main__":
     if len(sys.argv) < 2:

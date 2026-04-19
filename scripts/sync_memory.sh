@@ -5,7 +5,9 @@
 
 WORKSPACE="/root/.openclaw/workspace"
 LOG_FILE="/root/.openclaw/workspace/.sync_log"
-WEBHOOK="https://open.feishu.cn/open-apis/bot/v2/hook/375a8be1-9e3e-4758-a78b-e775fd4d32a1"
+
+# 飞书 Webhook - 从环境变量读取（不硬编码在脚本中）
+WEBHOOK="${FEISHU_WEBHOOK:-}"
 
 echo "[$(date '+%Y-%m-%d %H:%M')] === 记忆同步开始 ===" >> "$LOG_FILE"
 
@@ -23,14 +25,16 @@ else
     echo "[$(date '+%Y-%m-%d %H:%M')] 无变化，跳过 Git 提交" >> "$LOG_FILE"
 fi
 
-# Step 3: 推送到 GitHub 私有仓
+# Step 3: 推送到 GitHub（使用 GITHUB_TOKEN 环境变量）
 git push private main 2>&1 | tee -a "$LOG_FILE"
 
 echo "[$(date '+%Y-%m-%d %H:%M')] === 记忆同步完成 ===" >> "$LOG_FILE"
 
-# 飞书通知
-curl -s -X POST "$WEBHOOK" \
-  -H "Content-Type: application/json" \
-  -d '{"msg_type":"text","content":{"text":"🔄 记忆同步完成"}}' > /dev/null 2>&1 || true
+# 飞书通知（只有配置了 WEBHOOK 时才发送）
+if [[ -n "$WEBHOOK" ]]; then
+    curl -s -X POST "$WEBHOOK" \
+      -H "Content-Type: application/json" \
+      -d '{"msg_type":"text","content":{"text":"🔄 记忆同步完成"}}' > /dev/null 2>&1 || true
+fi
 
 exit 0

@@ -63,6 +63,13 @@ class RiskDetector:
         ("tasks/", "DELETE"): RiskLevel.HIGH,
         ("memory/", "DELETE"): RiskLevel.HIGH,
         ("shared/", "DELETE"): RiskLevel.HIGH,
+
+        # cron-events/ 目录 → 任务调度通知（创建/修改都是正常的定时任务触发）
+        ("cron-events/", "CREATE"): RiskLevel.SAFE,
+        ("cron-events/", "MODIFY"): RiskLevel.SAFE,
+        ("cron-events/", "DELETE"): RiskLevel.MEDIUM,
+        ("tasks/", "CREATE"): RiskLevel.SAFE,
+        ("tasks/", "MODIFY"): RiskLevel.SAFE,
         
         # 公共仓 push 操作 → 中风险
         ("PUBLIC_PUSH", "GIT"): RiskLevel.MEDIUM,
@@ -82,16 +89,37 @@ class RiskDetector:
         self.notification_level = self.config.get("notification_level", "MEDIUM")
         self.audit_log_path = self.config.get("audit_log", 
             "/root/.openclaw/workspace/clawkeeper/audit.log")
+        self.auto_allow = self.config.get("auto_allow", False)
         
     def _load_config(self):
-        """加载配置"""
-        if os.path.exists(self.config_path):
+        """加载配置（支持 YAML 和 JSON）"""
+        yaml_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "config.yaml")
+        json_path = self.config_path
+
+        # 优先读 YAML
+        if os.path.exists(yaml_path):
             try:
-                with open(self.config_path) as f:
+                import yaml as _yaml
+                with open(yaml_path, 'r', encoding='utf-8') as f:
+                    cfg = _yaml.safe_load(f)
+                notification = cfg.get('notification', {})
+                audit = cfg.get('audit', {})
+                return {
+                    'notification_level': notification.get('level', 'MEDIUM'),
+                    'audit_log': '/root/.openclaw/workspace/clawkeeper/audit.log',
+                    'auto_allow': audit.get('auto_allow', False),
+                }
+            except:
+                pass
+
+        # 回退读 JSON
+        if os.path.exists(json_path):
+            try:
+                with open(json_path) as f:
                     return json.load(f)
             except:
                 pass
-        return {"notification_level": "MEDIUM", "audit_log": "/root/.openclaw/workspace/clawkeeper/audit.log"}
+        return {"notification_level": "MEDIUM", "audit_log": "/root/.openclaw/workspace/clawkeeper/audit.log", "auto_allow": False}
 
     def backup_core_file(self, file_path):
         """
@@ -232,7 +260,11 @@ class RiskDetector:
         # 写审计日志
         self._write_audit(event_info, level)
         
-        # 决定动作
+        # auto_allow 模式下：所有操作自动放行，只记录日志
+        if self.auto_allow:
+            return Action(level, "ALLOW", full_msg, details, can_proceed=True)
+
+        # 正常模式：按风险等级决定动作
         if level >= RiskLevel.HIGH:
             # CRITICAL/HIGH 级别且是删除操作时，先备份
             if event_type == "DELETE":

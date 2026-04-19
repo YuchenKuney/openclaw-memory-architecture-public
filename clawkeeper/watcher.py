@@ -34,6 +34,7 @@ PROTECTED_DIRS = [
     "tasks/",
     "memory/",
     "shared/",
+    "cron-events/",
 ]
 
 # 危险操作类型
@@ -87,12 +88,17 @@ class ClawWatcher:
             "timestamp": time.time(),
         }
         
+        # cron-events/ 目录的事件走专门的解析通知
+        if category == "CORE_DIR" and str(path).startswith("cron-events"):
+            self.notifier.notify_cron_event(str(path), event_type)
+            return None
+
         # 交给检测器判断
         action = self.detector.evaluate(event_info)
-        
+
         if action:
             self.notifier.send(action)
-            
+
         return action
         
     def watch_inotify(self):

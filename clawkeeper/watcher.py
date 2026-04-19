@@ -107,11 +107,8 @@ class ClawWatcher:
             print("ERROR: inotify not available. Using fallback polling.")
             return self.watch_fallback()
             
-        i = inotify.adapters.Inotify()
-        
-        # 添加工作区监控
-        i.add_watch(str(self.workspace), 
-            inotify.adapters.InotifyTree.WATCH_EVENTS)
+        # InotifyTree 自动递归监控整个目录树
+        i = inotify.adapters.InotifyTree(str(self.workspace))
             
         self.running = True
         print(f"[ClawWatcher] 监控中: {self.workspace}")

@@ -313,3 +313,76 @@ if __name__ == "__main__":
     
     notifier.send(action)
     print("通知已发送")
+
+    def notify_group_progress(self, job_name, progress, step, message=""):
+        """
+        发送群聊进度通知（实时进度条）
+        
+        Args:
+            job_name: 任务名称
+            progress: 进度 0-100
+            step: 当前步骤描述
+            message: 详情消息
+        """
+        now = datetime.now().strftime("%H:%M:%S")
+
+        # 构建进度条
+        filled = round(progress / 10)
+        empty = 10 - filled
+        bar = "█" * filled + "░" * empty
+
+        # 状态颜色
+        if progress == 0:
+            status_text = "🆕 开始执行"
+            color = "blue"
+        elif progress == 100:
+            status_text = "✅ 任务完成"
+            color = "green"
+        else:
+            status_text = "🔄 进行中"
+            color = "orange"
+
+        header_title = f"{status_text} {job_name}"
+
+        content_parts = [
+            f"**任务**: `{job_name}`",
+            f"**进度**: {bar} `{progress}%`",
+            f"**步骤**: `{step}`",
+        ]
+        if message:
+            content_parts.append(f"**详情**: {message}")
+        content_parts.append(f"`⏰ {now}`")
+
+        card = {
+            "msg_type": "interactive",
+            "card": {
+                "header": {
+                    "title": {"tag": "plain_text", "content": header_title},
+                    "template": color,
+                },
+                "elements": [
+                    {"tag": "markdown", "content": "\n".join(content_parts)},
+                ]
+            }
+        }
+
+        # 发送到群聊 Webhook（从环境变量读取）
+        group_webhook = os.environ.get(
+            "FEISHU_GROUP_WEBHOOK",
+            "https://open.feishu.cn/open-apis/bot/v2/hook/7a939580-e987-4571-a142-f58528cf71ec"
+        )
+        try:
+            data = json.dumps(card, ensure_ascii=False).encode("utf-8")
+            req = urllib.request.Request(
+                group_webhook,
+                data=data,
+                headers={"Content-Type": "application/json"}
+            )
+            with urllib.request.urlopen(req, timeout=10) as resp:
+                result = json.loads(resp.read())
+                if result.get("StatusCode") == 0 or result.get("code") == 0:
+                    print(f"[Notifier] 群聊进度通知已发送: {progress}%")
+                else:
+                    print(f"[Notifier] 群聊通知失败: {result}")
+        except Exception as e:
+            print(f"[Notifier] 群聊通知异常: {e}")

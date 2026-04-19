@@ -512,6 +512,8 @@ class RiskDetector:
             "generated_at": time.strftime("%Y-%m-%d %H:%M:%S"),
             "files": results
         }
+        # 动态计算路径（支持运行时切换 workspace）
+        self.integrity_manifest_path = Path(self.workspace) / "clawkeeper" / "integrity_manifest.json"
         os.makedirs(os.path.dirname(self.integrity_manifest_path), exist_ok=True)
         with open(self.integrity_manifest_path, 'w') as f:
             json.dump(manifest, f, indent=2, ensure_ascii=False)
@@ -680,6 +682,21 @@ class RiskDetector:
             elif regex_level == RiskLevel.MEDIUM:
                 regex_level = RiskLevel.LOW
 
+        # ========== PR⑥：用户画像动态调整 ==========
+        command = event_info.get("path", "") + " " + event_type
+        if mode == "work":
+            try:
+                from clawkeeper.user_profile import ProfileManager
+                profile = ProfileManager.get_profile()
+                adjusted_level, adj_reason = profile.get_adjusted_risk(command, int(regex_level))
+                if adjusted_level != regex_level:
+                    regex_level = RiskLevel(adjusted_level)
+                    print(f"[Detector] PR⑥ 画像调整: {event_type} {path} "
+                          f"[{regex_level.name}]" + f" | {adj_reason}")
+            except Exception as e:
+                print(f"[Detector] PR⑥ 画像调整失败: {e}")
+
+
         if regex_level >= RiskLevel.HIGH:
             return self._build_action(event_info, regex_level, None, mode)
 
@@ -817,3 +834,77 @@ if __name__ == "__main__":
         if action:
             print(f"→ {action.message}")
             print()
+
+
+# ============ PR④：知识图谱联动（感知层 → 认知层） ============
+
+    def link_to_knowledge_graph(self, action: Action):
+        """
+        将检测到的事件联动到知识图谱
+        感知层 → 认知层：每次检测到事件都更新图谱
+        """
+        try:
+            from knowledge_graph import KnowledgeGraph
+            kg = KnowledgeGraph()
+
+            path = action.details.get("path", "")
+            event = action.details.get("event", "")
+            level = action.level
+
+            # 1. 提取实体 ID
+            if path:
+                # 从路径提取实体名
+                entity_id = Path(path).stem or Path(path).name
+                if entity_id in ["workspace", "openclaw", "root"]:
+                    entity_id = Path(path).name
+
+                # 2. 映射事件类型到关系
+                relation_map = {
+                    "DELETE": "deleted_by",
+                    "MODIFY": "modified_by",
+                    "CREATE": "created_by",
+                    "READ": "accessed_by",
+                }
+                rel = relation_map.get(event, "triggers")
+
+                # 3. 联动到知识图谱
+                kg.link_event_to_entity(
+                    event={
+                        "event": event,
+                        "path": path,
+                        "level": level.name if hasattr(level, 'name') else str(level),
+                    },
+                    entity_id=entity_id,
+                    relation=rel,
+                )
+
+                # 4. 高危事件自动记录到对应类型实体
+                if level >= RiskLevel.HIGH:
+                    entity_type = "vulnerability" if "token" in path.lower() or "credential" in path.lower() else "event"
+                    kg.get_or_create(entity_id, entity_type)
+                    kg.entities[entity_id].tags.add(f"risk:{level.name}")
+                    kg.save()
+
+        except Exception as e:
+            print(f"[Detector] 知识图谱联动失败: {e}")
+
+
+def _build_action_wrapper(original_method):
+    """装饰器：在 _build_action 后自动联动知识图谱"""
+    def wrapper(self, event_info, level, semantic_result=None, mode="work"):
+        action = original_method(self, event_info, level, semantic_result, mode)
+        if action and action.level >= RiskLevel.MEDIUM:
+            # 异步联动，不阻塞主流程
+            try:
+                import threading
+                t = threading.Thread(target=self.link_to_knowledge_graph, args=(action,))
+                t.start()
+            except Exception:
+                pass
+        return action
+    return wrapper
+
+
+# 动态应用装饰器（不修改原有方法结构）
+_original_build_action = RiskDetector._build_action
+RiskDetector._build_action = _build_action_wrapper(_original_build_action)

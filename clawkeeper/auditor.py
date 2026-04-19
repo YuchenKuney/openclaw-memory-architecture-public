@@ -235,8 +235,9 @@ class Auditor:
             old_files = manifest.get("files", {})
 
             # 重新计算当前哈希
-            from detector import RiskDetector
+            from clawkeeper.detector import RiskDetector
             detector = RiskDetector()
+            detector.workspace = self.workspace
             current = detector.memory_integrity_check()
 
             old_names = set(old_files.keys())

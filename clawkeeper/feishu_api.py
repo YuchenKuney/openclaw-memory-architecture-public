@@ -181,13 +181,13 @@ def build_approval_card(
                             "tag": "button",
                             "text": {"tag": "plain_text", "content": "✅ 允许放行"},
                             "type": "primary",
-                            "value": json.dumps({"action": "ALLOW", "approval_id": pending_id}, ensure_ascii=False)
+                            "value": {"action": "ALLOW", "approval_id": pending_id}
                         },
                         {
                             "tag": "button",
                             "text": {"tag": "plain_text", "content": "❌ 拒绝"},
                             "type": "danger",
-                            "value": json.dumps({"action": "DENY", "approval_id": pending_id}, ensure_ascii=False)
+                            "value": {"action": "DENY", "approval_id": pending_id}
                         }
                     ]
                 },

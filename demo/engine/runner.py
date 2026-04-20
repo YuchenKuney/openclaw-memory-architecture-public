@@ -124,10 +124,9 @@ class DemoRunner:
     def _generate_cold_response(self):
         import random
         options = [
-            "越南是东南亚增长最快的电商市场之一，可以考虑。",
-            "菲律宾市场人口红利大，适合新手入场。",
-            "印尼是东南亚最大市场，但竞争激烈。",
-            "建议从马来西亚或新加坡入手，门槛较低。",
+            "东南亚市场选择很多，需要结合你的具体情况分析。",
+            "东南亚各国都有机会，建议先明确你的核心优势。",
+            "市场选择取决于预算、物流和竞争环境，需要更多信息。",
         ]
         return random.choice(options)
 
@@ -210,7 +209,7 @@ class DemoRunner:
             self.kg.entities.setdefault(kw, {"type": "concept", "count": 0})
             self.kg.entities[kw]["count"] += 1
 
-    def consistency_check(self):
+    def consistency_check(self, silent=False):
         """一致性检验：只校验核心结论（推荐国家），不校验完整句子"""
         if len(self.memory_log) < 5:
             return "SKIP", "需要至少 5 轮对话"
@@ -218,7 +217,7 @@ class DemoRunner:
         step4 = self.memory_log[3]["ai"]
         step5 = self.memory_log[4]["ai"]
 
-        countries = ["印尼", "菲律宾", "越南", "马来西亚", "新加坡"]
+        countries = ["印尼", "印度尼西亚", "菲律宾", "越南", "马来西亚", "新加坡"]
 
         def extract_country(text):
             for c in countries:
@@ -259,7 +258,7 @@ class DemoRunner:
             lines.append(f"💾 Time: {entry['timestamp']}\n\n")
             lines.append("---\n")
 
-        result, reason = self.consistency_check()
+        result, reason = self.consistency_check(silent=True)
         lines.append(f"\n## 最终结果\n- 一致性检验：{result}\n- 原因：{reason}\n")
         lines.append(f"\n## Memory Snapshot\n")
         for k, v in self.user_state.items():

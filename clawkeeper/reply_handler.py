@@ -206,6 +206,20 @@ class ReplyServer:
             if msg_type == "text":
                 content = json.loads(content_str)
                 text = content.get("text", "").strip()
+            elif msg_type == "card" or "action_value" in payload:
+                # 卡片按钮回调
+                action_value_str = payload.get("action_value", "")
+                try:
+                    action_value = json.loads(action_value_str)
+                    action_type = action_value.get("action")
+                    action_id = action_value.get("id")
+                    if action_type and action_id:
+                        handle_reply(action_type, action_id, self.registry)
+                        status_text = '允许' if action_type == 'approve' else '拒绝'
+                        return {"code": 0, "msg": f"✅ 卡片审批完成: {status_text}"}
+                except:
+                    pass
+                return {"code": 0, "msg": "卡片回调已处理"}
             else:
                 return {"code": 0, "msg": "不支持的消息类型"}
 
@@ -236,6 +250,25 @@ class ReplyServer:
                     body = self.rfile.read(content_length).decode("utf-8")
                     try:
                         payload = json.loads(body)
+                        # 飞书事件订阅验证（url_verification）
+                        if payload.get("type") == "url_verification":
+                            import os
+                            challenge = payload.get("challenge", "")
+                            expected_token = os.environ.get("FEISHU_VERIFICATION_TOKEN", "")
+                            received_token = payload.get("token", "")
+                            print(f"[ReplyServer] url_verification: challenge={challenge}, token={received_token}")
+                            # Validate token (if env var is set)
+                            if expected_token and received_token != expected_token:
+                                print(f"[ReplyServer] ❌ Token mismatch! expected={expected_token}, got={received_token}")
+                                self.send_response(403)
+                                self.end_headers()
+                                return
+                            self.send_response(200)
+                            self.send_header("Content-Type", "application/json")
+                            self.end_headers()
+                            self.wfile.write(json.dumps({"challenge": challenge}).encode())
+                            print(f"[ReplyServer] ✅ url_verification passed")
+                            return
                         # 飞书事件回调格式
                         if "event" in payload and isinstance(payload["event"], dict):
                             payload = payload["event"]
@@ -251,6 +284,32 @@ class ReplyServer:
                 else:
                     self.send_response(404)
                     self.end_headers()
+
+            def do_GET(self):
+                """飞书事件订阅验证（Challenge Check）"""
+                import urllib.parse
+                if self.path.startswith('/feishu/reply') or self.path.startswith('/feishu/approval'):
+                    # 飞书发来的 challenge 验证
+                    parsed = urllib.parse.urlparse(self.path)
+                    params = urllib.parse.parse_qs(parsed.query)
+                    challenge = params.get('challenge', [''])[0]
+                    if challenge:
+                        # 返回 challenge 响应（飞书要求的标准格式）
+                        resp = {"challenge": challenge}
+                        self.send_response(200)
+                        self.send_header("Content-Type", "application/json")
+                        self.send_header("Content-Length", str(len(json.dumps(resp))))
+                        self.end_headers()
+                        self.wfile.write(json.dumps(resp).encode())
+                        print(f"[ReplyServer] ✅ Challenge 验证成功")
+                    else:
+                        self.send_response(200)
+                        self.send_header("Content-Type", "text/plain")
+                        self.end_headers()
+                        self.wfile.write(b"OK")
+                    return
+                self.send_response(404)
+                self.end_headers()
 
             def log_message(self, format, *args):
                 # 静默日志，避免干扰

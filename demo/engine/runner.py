@@ -24,7 +24,6 @@ class Distiller:
         try:
             self.kg.save()
         except (FileNotFoundError, OSError):
-            # 目录不存在时静默跳过（demo 场景下不阻塞）
             pass
         return True
 
@@ -55,7 +54,6 @@ class Profile:
 class DemoRunner:
     def __init__(self, audit=None, distill=None, profile=None):
         self.audit = audit
-        # 如果传入 KnowledgeGraph，包装成 Distiller
         if distill is not None and not isinstance(distill, Distiller):
             self.distill = Distiller(distill)
         else:
@@ -63,12 +61,9 @@ class DemoRunner:
 
         self.profile = profile or Profile()
 
-        # Memory 系统初始化
         self.kg = KnowledgeGraph()
         self.context_builder = ContextBuilder()
         self.memory_log = []
-
-        # 用户画像
         self.user_state = {
             "region": None,
             "category": None,
@@ -86,51 +81,47 @@ class DemoRunner:
         tag = step_data["tag"]
         step = step_data["step"]
 
-        print(f"\n👤 User: {user_input}")
+        print(f"\n{'─' * 56}")
+        print(f"  Step {step} ｜ {tag}")
+        print(f"{'─' * 56}")
+        print(f"  👤 {user_input}")
 
-        # ========== 关键对比：Step 4 之前，展示「无 Memory 时的 AI」vs「有 Memory 时的 AI」==========
+        # ========== A/B 对比：Step 4 之前展示无 Memory vs 有 Memory ==========
         if tag == "decision_test":
-            print("\n" + "=" * 60)
-            print("🔬 A/B 对比测试：Memory 有无的差异")
-            print("=" * 60)
-
             cold_response = self._generate_cold_response()
-            print(f"\n❄️  [Without Memory] 冷启动 AI 回答：")
-            print(f"   {cold_response}")
+            print(f"\n  ❄️ [Without Memory] 冷启动 AI 回答：")
+            print(f"     {cold_response.strip()}")
+            print(f"\n  🔥 [With Memory] 基于记忆的 AI 回答：")
 
-            print(f"\n🔥  [With Memory] 基于记忆的 AI 回答：")
-
-        # 1. 调用 AI（核心）
+        # 1. AI 回复
         response = self._generate_response(user_input, tag)
-        print(f"🤖 AI: {response}")
+        print(f"\n  🤖 AI 回答：")
+        for line in response.split('\n'):
+            print(f"     {line}")
 
-        # 2. 写入 Memory（多层记忆）
+        # 2. 写入 Memory
         self._write_memory(user_input, response, tag)
 
-        # 3. 打印 Memory 内容快照
-        self._print_memory_snapshot(tag)
+        # 3. Memory Snapshot（规整树状结构）
+        self._print_memory_snapshot()
 
-        # 4. Audit（Clawkeeper 安全审计）
+        # 4. Audit
         if self.audit:
             audit_result = self.audit.check(user_input, response)
-            print(f"🛡️ Audit: {audit_result}")
+            print(f"\n  🛡️ Audit: {audit_result}")
 
-        # 5. Distillation（蒸馏）
+        # 5. Distillation
         if self.distill:
             self.distill.run()
-            print(f"🧠 Distillation triggered")
+            print(f"  🧠 Distillation triggered")
 
         # 6. Profile 更新
         profile_state = self.profile.update(user_input)
-        print(f"📊 Profile: {profile_state}")
-
-        # 7. 打印 Profile（结构化理解用户）
-        self._print_user_profile()
+        self._print_user_profile(profile_state)
 
         return response
 
     def _generate_cold_response(self):
-        """无 Memory 时随机回答（模拟冷启动 AI）"""
         import random
         options = [
             "越南是东南亚增长最快的电商市场之一，可以考虑。",
@@ -141,7 +132,6 @@ class DemoRunner:
         return random.choice(options)
 
     def _generate_response(self, user_input, tag):
-        """生成 AI 回复（模拟 AI 逐步变聪明）"""
         if tag == "initial_context":
             return "东南亚市场确实很有潜力！印尼、越南、菲律宾都是不错的机会。能告诉我你具体想卖什么品类吗？"
 
@@ -165,10 +155,7 @@ class DemoRunner:
         return "明白了，我在持续学习你的需求。"
 
     def _write_memory(self, user_input, response, tag):
-        """写入多层记忆"""
         ts = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-
-        # 更新用户画像
         self._update_user_state(user_input, tag)
 
         entry = {
@@ -179,11 +166,9 @@ class DemoRunner:
             "timestamp": ts
         }
         self.memory_log.append(entry)
-
-        # 写入 KG 实体
         self._update_kg(user_input, tag)
 
-        print(f"💾 Memory Updated at {ts}")
+        print(f"\n  💾 Memory Updated at {ts}")
 
     def _update_user_state(self, user_input, tag):
         text = user_input.lower()
@@ -194,21 +179,24 @@ class DemoRunner:
         if "菲律宾" in text: self.user_state["region"] = "Philippines"
         self.user_state["stage"] = tag
 
-    def _print_user_profile(self):
-        region = self.user_state.get("region") or "-"
-        category = self.user_state.get("category") or "-"
-        price = self.user_state.get("price") or "-"
-        print(f"📊 User Profile: region={region} | category={category} | price={price}")
+    def _print_user_profile(self, profile_state):
+        r = profile_state.get("region") or "-"
+        c = profile_state.get("category") or "-"
+        p = profile_state.get("price") or "-"
+        print(f"\n  📊 User Profile:")
+        print(f"     ┌─ region  : {r}")
+        print(f"     ├─ category: {c}")
+        print(f"     └─ price   : {p}")
 
-    def _print_memory_snapshot(self, tag):
+    def _print_memory_snapshot(self):
         if len(self.memory_log) == 0:
             return
-        print("\n📦 Memory Snapshot:")
-        print(f"  ├─ region: {self.user_state.get('region') or '待定'}")
-        print(f"  ├─ category: {self.user_state.get('category') or '待定'}")
-        print(f"  ├─ price: {self.user_state.get('price') or '待定'}")
-        print(f"  ├─ context: {len(self.memory_log)} 轮对话已记忆")
-        print(f"  └─ latest tag: {tag}")
+        print(f"\n  📦 Memory Snapshot:")
+        print(f"     ├─ region  : {self.user_state.get('region') or '待定'}")
+        print(f"     ├─ category: {self.user_state.get('category') or '待定'}")
+        print(f"     ├─ price   : {self.user_state.get('price') or '待定'}")
+        print(f"     ├─ rounds  : {len(self.memory_log)} 轮对话已记忆")
+        print(f"     └─ stage   : {self.user_state.get('stage') or '-'}")
 
     def _update_kg(self, user_input, tag):
         keywords = {
@@ -223,22 +211,43 @@ class DemoRunner:
             self.kg.entities[kw]["count"] += 1
 
     def consistency_check(self):
+        """一致性检验：只校验核心结论（推荐国家），不校验完整句子"""
         if len(self.memory_log) < 5:
             return "SKIP", "需要至少 5 轮对话"
 
-        first_answer = self.memory_log[3]["ai"]  # Step 4
-        second_answer = self.memory_log[4]["ai"]  # Step 5
+        step4 = self.memory_log[3]["ai"]
+        step5 = self.memory_log[4]["ai"]
 
-        consistent = "印尼" in first_answer and "印尼" in second_answer
-        reason = f"Step 4 vs Step 5 均推荐印尼" if consistent else f"答案有变化需检查"
+        countries = ["印尼", "菲律宾", "越南", "马来西亚", "新加坡"]
 
-        print(f"\n🔍 Consistency Check:")
-        print(f"  Step 4: {first_answer[:60]}...")
-        print(f"  Step 5: {second_answer[:60]}...")
-        print(f"  Result: {'✅ PASS' if consistent else '❌ FAIL'}")
-        print(f"  Reason: {reason}")
+        def extract_country(text):
+            for c in countries:
+                if c in text:
+                    return c
+            return None
 
-        return "PASS" if consistent else "FAIL", reason
+        country4 = extract_country(step4)
+        country5 = extract_country(step5)
+
+        core_match = country4 == country5 and country4 is not None
+
+        if core_match:
+            result = "✅ PASS"
+            reason = f"核心结论一致（推荐 {country4}），表述有细节调整（正常）"
+        else:
+            result = "❌ FAIL"
+            reason = f"推荐国家有变化：Step4→{country4 or '无'}，Step5→{country5 or '无'}"
+
+        print(f"\n{'=' * 56}")
+        print(f"  🔍 Consistency Check")
+        print(f"{'=' * 56}")
+        print(f"  Step 4 结论: {country4 or '无'}")
+        print(f"  Step 5 结论: {country5 or '无'}")
+        print(f"  ────────────────────")
+        print(f"  判定: {result}")
+        print(f"  原因: {reason}")
+
+        return "PASS" if core_match else "FAIL", reason
 
     def save_log(self, path="/root/.openclaw/workspace/demo/outputs/demo_log.md"):
         lines = ["# Demo 运行记录\n", f"时间：{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n\n"]
@@ -260,4 +269,4 @@ class DemoRunner:
         with open(path, 'w') as f:
             f.writelines(lines)
 
-        print(f"\n📄 完整记录已保存到: {path}")
+        print(f"\n  📄 完整记录已保存到: {path}")

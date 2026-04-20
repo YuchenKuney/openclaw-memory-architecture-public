@@ -452,14 +452,34 @@ def run_scenario_demo():
     runner.save_log()
 
     print()
-    header("Demo 总结")
-    cprint(f"  ✅ Memory 写入：{len(runner.memory_log)} 轮对话")
-    cprint(f"  ✅ Audit 审计：已完成")
-    cprint(f"  ✅ Profile 更新：已生效")
-    cprint(f"  🔍 一致性检验：{result}")
+    print("=" * 60)
+    print("🏁 Demo 完成，开始一致性检验")
+    print("=" * 60)
+    result, reason = runner.consistency_check()
+
+    # 保存结果
+    runner.save_log()
+
     print()
-    cprint("  真实技术栈：KnowledgeGraph + ContextBuilder + Clawkeeper + UserProfile", BLUE)
-    cprint("  完整记录：demo/outputs/demo_log.md", BLUE)
+    print("=" * 60)
+    print("  Demo 总结")
+    print("=" * 60)
+    print(f"  ✅ Memory 写入：{len(runner.memory_log)} 轮对话")
+    print(f"  ✅ Audit 审计：已完成")
+    print(f"  ✅ Profile 更新：已生效")
+    print(f"  🔍 一致性检验：{result}")
+    print()
+    print("  真实技术栈：KnowledgeGraph + ContextBuilder + Clawkeeper + Profile")
+    print()
+    print("  💡 Demo 已完成！你可以：")
+    print("     1. 查看 demo/outputs/demo_log.md 完整对话记录")
+    print("     2. 提交 Issue 反馈体验：https://github.com/...")
+    print("        YuchenKuney/openclaw-memory-architecture-public/issues")
+    print("     3. 运行 python3 demo.py 体验其他场景")
+    print("=" * 60)
+
+    print()
+    cprint("  让我知道我不是一个人在战斗，感谢你的参与！", GREEN)
 
 
 # ============ 主函数 ============

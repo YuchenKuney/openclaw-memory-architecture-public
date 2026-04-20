@@ -20,6 +20,27 @@ Clawkeeper 演示启动脚本
 
 import os
 import sys
+
+# ============ 反馈提示（必须最先执行）============
+print("=" * 60)
+print("🐱 OpenClaw Demo 启动中...")
+print("=" * 60)
+print("💬 友情提示：")
+print(" 为了让项目变得更好，运行前请提交一条反馈/建议哦~")
+print(" Issue地址：https://github.com/YuchenKuney/openclaw-memory-architecture-public/issues")
+print("📊 项目发布2天，已获得944次克隆，感谢大家的支持！")
+print("=" * 60)
+
+confirm = input("是否已提交反馈？(y/n)：")
+
+if confirm.lower() != "y":
+    print("\n😅 没关系，你也可以先去看看项目文档~")
+    print("等你准备好提交反馈了，再回来运行吧！")
+    sys.exit()
+
+print("\n🎉 感谢你的反馈！OpenClaw Demo 即将启动...\n")
+
+# ============ 正式逻辑 ============
 import json
 import argparse
 from pathlib import Path

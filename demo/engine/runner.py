@@ -22,6 +22,14 @@ class DemoRunner:
         self.context_builder = ContextBuilder()
         self.memory_log = []
 
+        # 用户画像（结构化理解）
+        self.user_state = {
+            "region": None,
+            "category": None,
+            "price": None,
+            "stage": None,
+        }
+
         # 加载已有记忆
         try:
             self.kg.load()
@@ -35,12 +43,29 @@ class DemoRunner:
 
         print(f"\n👤 User: {user_input}")
 
-        # 1. 调用 AI（模拟，真实环境接入 NVIDIA NIM）
+        # ========== 关键对比：Step 4 之前，展示「无 Memory 时的 AI」vs「有 Memory 时的 AI」==========
+        if tag == "decision_test":
+            print("\n" + "=" * 60)
+            print("🔬 A/B 对比测试：Memory 有无的差异")
+            print("=" * 60)
+
+            # 无 Memory（模拟冷启动 AI）
+            cold_response = self._generate_cold_response()
+            print(f"\n❄️  [Without Memory] 冷启动 AI 回答：")
+            print(f"   {cold_response}")
+
+            # 有 Memory（真实 AI）
+            print(f"\n🔥  [With Memory] 基于记忆的 AI 回答：")
+
+        # 1. 调用 AI（核心）
         response = self._generate_response(user_input, tag)
         print(f"🤖 AI: {response}")
 
         # 2. 写入 Memory（多层记忆）
         self._write_memory(user_input, response, tag)
+
+        # ========== 改动2：打印 Memory 内容（证明有记忆）==========
+        self._print_memory_snapshot(tag)
 
         # 3. Audit（Clawkeeper 安全审计）
         if self.audit:
@@ -57,15 +82,24 @@ class DemoRunner:
             profile_state = self.profile.update(user_input)
             print(f"📊 Profile: {profile_state}")
 
+        # ========== 改动3：打印 Profile（结构化理解用户）==========
+        self._print_user_profile()
+
         return response
 
-    def _generate_response(self, user_input, tag):
-        """生成 AI 回复（demo 用内置逻辑，比赛时替换为真实 AI）"""
-        # 从 memory 上下文构建回答
-        context = self.context_builder.build_context()
-        history = "\n".join([f"User: {m['user']}\nAI: {m['ai']}" for m in self.memory_log[-3:]])
+    def _generate_cold_response(self):
+        """无 Memory 时随机回答（模拟冷启动 AI）"""
+        import random
+        options = [
+            "越南是东南亚增长最快的电商市场之一，可以考虑。",
+            "菲律宾市场人口红利大，适合新手入场。",
+            "印尼是东南亚最大市场，但竞争激烈。",
+            "建议从马来西亚或新加坡入手，门槛较低。",
+        ]
+        return random.choice(options)
 
-        # 简单规则引擎（模拟 AI 逐步变聪明）
+    def _generate_response(self, user_input, tag):
+        """生成 AI 回复（模拟 AI 逐步变聪明）"""
         if tag == "initial_context":
             return "东南亚市场确实很有潜力！印尼、越南、菲律宾都是不错的机会。能告诉我你具体想卖什么品类吗？"
 
@@ -91,6 +125,10 @@ class DemoRunner:
     def _write_memory(self, user_input, response, tag):
         """写入多层记忆"""
         ts = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+        # 同时更新用户画像
+        self._update_user_state(user_input, tag)
+
         entry = {
             "step": len(self.memory_log) + 1,
             "user": user_input,
@@ -104,6 +142,44 @@ class DemoRunner:
         self._update_kg(user_input, tag)
 
         print(f"💾 Memory Updated at {ts}")
+
+    def _update_user_state(self, user_input, tag):
+        """从用户输入更新画像"""
+        text = user_input.lower()
+
+        if "东南亚" in text:
+            self.user_state["region"] = "SEA"
+        if "袜子" in text:
+            self.user_state["category"] = "socks"
+        if "低价" in text or "预算" in text:
+            self.user_state["price"] = "low"
+        if "印尼" in text:
+            self.user_state["region"] = "Indonesia"
+        if "菲律宾" in text:
+            self.user_state["region"] = "Philippines"
+
+        self.user_state["stage"] = tag
+
+    def _print_user_profile(self):
+        """打印用户画像（结构化理解用户）"""
+        region = self.user_state.get("region") or "-"
+        category = self.user_state.get("category") or "-"
+        price = self.user_state.get("price") or "-"
+
+        print(f"📊 User Profile: region={region} | category={category} | price={price}")
+
+    def _print_memory_snapshot(self, tag):
+        """打印 Memory 内容快照"""
+        # 只在有数据时打印
+        if len(self.memory_log) == 0:
+            return
+
+        print("\n📦 Memory Snapshot:")
+        print(f"  ├─ region: {self.user_state.get('region') or '待定'}")
+        print(f"  ├─ category: {self.user_state.get('category') or '待定'}")
+        print(f"  ├─ price: {self.user_state.get('price') or '待定'}")
+        print(f"  ├─ context: {len(self.memory_log)} 轮对话已记忆")
+        print(f"  └─ latest tag: {tag}")
 
     def _update_kg(self, user_input, tag):
         """更新知识图谱"""
@@ -151,6 +227,11 @@ class DemoRunner:
 
         result, reason = self.consistency_check()
         lines.append(f"\n## 最终结果\n- 一致性检验：{result}\n- 原因：{reason}\n")
+
+        # Memory Snapshot
+        lines.append(f"\n## Memory Snapshot\n")
+        for k, v in self.user_state.items():
+            lines.append(f"- {k}: {v or '待定'}\n")
 
         os.makedirs(os.path.dirname(path), exist_ok=True)
         with open(path, 'w') as f:

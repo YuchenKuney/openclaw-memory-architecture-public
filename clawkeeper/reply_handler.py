@@ -114,7 +114,7 @@ class ReplyServer:
                                 else:
                                     status_text = "无待审批项"
 
-                            result = {"status_code": 0, "status_msg": "success", "data": {"template_variable": {"status": "✅ " + status_text}}}
+                            result = {"status_code": 0, "status_msg": "success", "data": {"template_variable": {"status": "✅ " + status_text}}, "toast": {"type": "success", "content": "✅ " + status_text}}
                             self.send_response(200)
                             self.send_header("Content-Type", "application/json")
                             self.end_headers()
@@ -140,7 +140,7 @@ class ReplyServer:
                             handle_reply(action_t, action_id, _g_registry)
                             result = {"code": 0, "msg": f"✅ 卡片审批完成"}
                         else:
-                            result = {"status_code": 0, "status_msg": "success", "data": {}}
+                            result = {"status_code": 0, "status_msg": "success", "data": {}, "toast": {"type": "success", "content": "已处理"}}
                         self.send_response(200)
                         self.send_header("Content-Type", "application/json")
                         self.end_headers()
@@ -152,7 +152,7 @@ class ReplyServer:
                     if hasattr(self.server, 'server') and hasattr(self.server.server, 'handle_feishu_event'):
                         result = self.server.server.handle_feishu_event(event if event else payload)
                     else:
-                        result = {"status_code": 0, "status_msg": "success", "data": {}}
+                        result = {"status_code": 0, "status_msg": "success", "data": {}, "toast": {"type": "success", "content": "已处理"}}
 
                     self.send_response(200)
                     self.send_header("Content-Type", "application/json")

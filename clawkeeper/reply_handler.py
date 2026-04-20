@@ -256,6 +256,64 @@ class ReplyServer:
                             challenge = payload.get("challenge", "")
                             expected_token = os.environ.get("FEISHU_VERIFICATION_TOKEN", "")
                             received_token = payload.get("token", "")
+                            print(f"[ReplyServer] url_verification: challenge={challenge}")
+                            if expected_token and received_token != expected_token:
+                                print(f"[ReplyServer] ❌ Token mismatch")
+                                self.send_response(403)
+                                self.end_headers()
+                                return
+                            self.send_response(200)
+                            self.send_header("Content-Type", "application/json")
+                            self.end_headers()
+                            self.wfile.write(json.dumps({"challenge": challenge}).encode())
+                            print(f"[ReplyServer] ✅ url_verification passed")
+                            return
+
+                        # ============ 核心：处理 card.action.trigger 回调 ============
+                        event = payload.get("event", {})
+                        if event.get("type") == "card.action.trigger":
+                            action_obj = event.get("action", {})
+                            action_value = action_obj.get("value", {})
+                            # value 可能是字符串 JSON 或直接是 dict
+                            if isinstance(action_value, str):
+                                try:
+                                    action_value = json.loads(action_value)
+                                except:
+                                    action_value = {}
+                            action_t = action_value.get("action", "")
+                            action_id = action_value.get("id", "")
+                            print(f"[ReplyServer] 卡片回调: action={action_t}, id={action_id}")
+                            if action_t and action_id:
+                                handle_reply(action_t, action_id, self.server.server.registry)
+                                status_text = '允许' if action_t == 'approve' else '拒绝'
+                                result = {"code": 0, "msg": f"✅ 卡片审批完成: {status_text}"}
+                                self.send_response(200)
+                                self.send_header("Content-Type", "application/json")
+                                self.end_headers()
+                                self.wfile.write(json.dumps(result).encode())
+                                return
+                            elif not action_id:
+                                # 无 id 则模糊匹配最新 pending
+                                pending = self.server.server.pending_registry.list_pending()
+                                if pending:
+                                    latest_id = max(pending.keys(), key=lambda k: pending[k].get("created_at", ""))
+                                    handle_reply("approve", latest_id, self.server.server.registry)
+                                    result = {"code": 0, "msg": f"✅ 卡片审批完成（模糊匹配）"}
+                                    self.send_response(200)
+                                    self.send_header("Content-Type", "application/json")
+                                    self.end_headers()
+                                    self.wfile.write(json.dumps(result).encode())
+                                    return
+
+                        # 处理其他消息类型
+                        if "event" in payload and isinstance(payload.get("event"), dict):
+                            result = self.server.server.handle_feishu_event(event)
+                        else:
+                            result = self.server.server.handle_feishu_event(payload)
+                            import os
+                            challenge = payload.get("challenge", "")
+                            expected_token = os.environ.get("FEISHU_VERIFICATION_TOKEN", "")
+                            received_token = payload.get("token", "")
                             print(f"[ReplyServer] url_verification: challenge={challenge}, token={received_token}")
                             # Validate token (if env var is set)
                             if expected_token and received_token != expected_token:
@@ -269,9 +327,49 @@ class ReplyServer:
                             self.wfile.write(json.dumps({"challenge": challenge}).encode())
                             print(f"[ReplyServer] ✅ url_verification passed")
                             return
-                        # 飞书事件回调格式
-                        if "event" in payload and isinstance(payload["event"], dict):
+                        # 处理飞书事件回调（支持多种格式）
+                        # 格式1: {"event": {...}} (旧格式)
+                        if "event" in payload and isinstance(payload.get("event"), dict):
                             payload = payload["event"]
+
+                        # 格式2: 飞书卡片按钮回调（card.action.trigger 事件）
+                        # 真实格式: {"event":{"type":"card.action.trigger","action":{"value":{...}}}}
+                        event = payload.get("event", {})
+                        if event.get("type") == "card.action.trigger":
+                            action_obj = event.get("action", {})
+                            action_value = action_obj.get("value", {})
+                            # value 可能是字符串（JSON编码）或直接是对象
+                            if isinstance(action_value, str):
+                                try:
+                                    action_value = json.loads(action_value)
+                                except:
+                                    action_value = {}
+                            action_t = action_value.get("action", "")
+                            action_id = action_value.get("id", "")
+                            if action_t and action_id:
+                                handle_reply(action_t, action_id, self.server.server.registry)
+                                status_text = '允许' if action_t == 'approve' else '拒绝'
+                                result = {"code": 0, "msg": f"✅ 卡片审批完成: {status_text}"}
+                                self.send_response(200)
+                                self.send_header("Content-Type", "application/json")
+                                self.end_headers()
+                                self.wfile.write(json.dumps(result).encode())
+                                print(f"[ReplyServer] ✅ 卡片审批: {action_id} → {status_text}")
+                                return
+                            else:
+                                # 按钮没有 action/id（如普通按钮），尝试模糊匹配最新pending
+                                print(f"[ReplyServer] 卡片按钮无action_id，尝试模糊匹配")
+                                pending = self.server.server.pending_registry.list_pending()
+                                if pending:
+                                    latest_id = max(pending.keys(), key=lambda k: pending[k].get("created_at", ""))
+                                    handle_reply("approve", latest_id, self.server.server.registry)
+                                    result = {"code": 0, "msg": f"✅ 卡片审批完成（模糊匹配）"}
+                                    self.send_response(200)
+                                    self.send_header("Content-Type", "application/json")
+                                    self.end_headers()
+                                    self.wfile.write(json.dumps(result).encode())
+                                    return
+
                         result = self.server.server.handle_feishu_event(payload)
                         self.send_response(200)
                         self.send_header("Content-Type", "application/json")

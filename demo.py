@@ -29,6 +29,7 @@ print("💬 友情提示：")
 print(" 这是作者倾注心血的项目，我在非常认真地做这件事。")
 print(" 也希望你能认真对待它，哪怕只给我一条小小的建议。")
 print(" 让我知道，我不是一个人在战斗。")
+print("🏆 有效 Issue 采纳后可加入 CONTRIBUTORS.md 支持者名单（公平公开）")
 print(" Issue地址：https://github.com/YuchenKuney/openclaw-memory-architecture-public/issues")
 print("=" * 60)
 

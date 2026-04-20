@@ -21,8 +21,11 @@ class Distiller:
 
     def run(self):
         """执行记忆蒸馏：保存当前 KG 状态（触发 consolidation）"""
-        # KG 保存即触发数据整理（实体合并/去重）
-        self.kg.save()
+        try:
+            self.kg.save()
+        except (FileNotFoundError, OSError):
+            # 目录不存在时静默跳过（demo 场景下不阻塞）
+            pass
         return True
 
 

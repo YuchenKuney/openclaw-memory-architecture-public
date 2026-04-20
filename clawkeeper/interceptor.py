@@ -26,6 +26,7 @@ from pathlib import Path
 from enum import Enum
 from dataclasses import dataclass, field
 from typing import Optional, List, Dict
+from clawkeeper.reply_handler import PendingRegistry
 
 
 # ============ 分层响应类型 ============
@@ -51,6 +52,7 @@ class InterceptAction:
     unblocked: bool = False          # 坤哥是否已放行
 
 
+import uuid as _uuid
 # ============ 主拦截器 ============
 
 class Interceptor:
@@ -82,6 +84,7 @@ class Interceptor:
         self.evidence_dir.mkdir(parents=True, exist_ok=True)
         # PR⑥ 新增：自动批准开关（坤哥要求默认通过）
         self.auto_approve = os.environ.get("CLAWKEEPER_AUTO_APPROVE", "false").lower() == "true"
+        self.pending_registry = PendingRegistry()
 
     def approve_all(self):
         """一键放行：设置自动批准模式，后续所有 HIGH 操作自动通过"""
@@ -162,8 +165,20 @@ class Interceptor:
             "approved": False,
         }
 
-        ia.pending_approval = True
+        # 生成审批ID，写入 registry
+        action_id = f"action-{int(time.time())}-{_uuid.uuid4().hex[:6]}"
+        ia.details["action_id"] = action_id
         ia.details["blocked"] = True
+
+        # 写入 PendingRegistry（reply_handler 读取）
+        self.pending_registry.add(action_id, {
+            "path": path,
+            "operation": action.action_type,
+            "level": "HIGH",
+            "message": ia.message,
+        }, callback=None)
+
+        ia.pending_approval = True
 
         # PR⑥：坤哥设置了 auto_approve，自动放行
         if self.auto_approve:
@@ -199,6 +214,19 @@ class Interceptor:
             print(f"[Interceptor] ⚠️ [AUTO-APPROVE] CRITICAL 操作降级放行: {path}")
             self._do_block_and_notify(action, ia)
             return
+
+        # 生成审批ID，写入 registry
+        action_id = f"critical-{int(time.time())}-{_uuid.uuid4().hex[:6]}"
+        ia.details["action_id"] = action_id
+        ia.details["killed"] = True
+
+        # 写入 PendingRegistry
+        self.pending_registry.add(action_id, {
+            "path": path,
+            "operation": action.action_type,
+            "level": "CRITICAL",
+            "message": ia.message,
+        })
 
         # 1. 收集取证数据
         ia.evidence = self._collect_evidence(action)
@@ -287,6 +315,7 @@ class Interceptor:
     def _send_approval_request(self, action):
         """发送 HIGH 级审批请求卡片"""
         try:
+            action_id = action.details.get("action_id", "N/A")
             card = {
                 "msg_type": "interactive",
                 "card": {
@@ -298,6 +327,8 @@ class Interceptor:
                         {"tag": "markdown", "content": f"**操作**: {action.message}"},
                         {"tag": "markdown", "content": f"**路径**: `{action.details.get('path', '')}`"},
                         {"tag": "markdown", "content": f"**风险**: `HIGH` - 拦截等待人工确认"},
+                        {"tag": "hr"},
+                        {"tag": "markdown", "content": f"**审批ID**: `{action_id}`"},
                         {"tag": "hr"},
                         {"tag": "markdown", "content": "**操作**: 回复 `允许` 放行 / `拒绝` 取消"},
                         {"tag": "markdown", "content": "⚠️ 高危操作需要坤哥人工确认后才能执行"},
@@ -361,6 +392,16 @@ class Interceptor:
             return False
 
         self.blocked_paths.discard(path)
+
+        # 检查 PendingRegistry（reply_handler 可能已审批）
+        pending = self.pending_registry.list_pending()
+        for aid, info in pending.items():
+            if info.get("path") == path and info.get("status") == "approved":
+                ia.unblocked = True
+                self.pending_actions[path]["approved"] = True
+                self.blocked_paths.discard(path)
+                print(f"[Interceptor] ✅ PendingRegistry 审批通过: {aid}")
+                return True
 
         if path in self.pending_actions:
             ia = self.pending_actions[path].get("ia")

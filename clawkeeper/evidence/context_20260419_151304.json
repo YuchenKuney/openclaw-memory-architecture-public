@@ -1,0 +1,16 @@
+{
+  "timestamp": "20260419_151304",
+  "action": {
+    "level": "CRITICAL",
+    "action_type": "ALLOW",
+    "message": "[CRITICAL] Test",
+    "details": {
+      "path": "/workspace/core.md"
+    },
+    "can_proceed": true,
+    "timestamp": 1776604384.6326902
+  },
+  "path": "/workspace/core.md",
+  "event": null,
+  "level": 4
+}

@@ -31,3 +31,10 @@ hint: its remote counterpart. If you want to integrate the remote changes,
 hint: use 'git pull' before pushing again.
 hint: See the 'Note about fast-forwards' in 'git push --help' for details.
 [2026-04-18 21:12] === 记忆同步完成 ===
+[2026-04-20 05:21] === 记忆同步开始 ===
+Traceback (most recent call last):
+  File "/root/.openclaw/workspace/scripts/memory_scheduler.py", line 1108, in <module>
+    main()
+  File "/root/.openclaw/workspace/scripts/memory_scheduler.py", line 1042, in main
+    from scripts.memory_system import MemoryManager, FileMemory
+ModuleNotFoundError: No module named 'scripts'

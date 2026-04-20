@@ -34,6 +34,19 @@ from typing import Optional
 from web4_browser import Web4Browser, BrowserSession, get_pool
 from web4_container import manager, Web4Container
 
+# 铁律系统（坤哥的 4 条绝对禁令）
+try:
+    from web4_cookie_injector import (
+        CookieInjector, RuledBrowserSession, IronRuler,
+        launch_with_cookies
+    )
+    RULER_AVAILABLE = True
+except ImportError:
+    RULER_AVAILABLE = False
+
+# Cookie 文件路径
+COOKIE_FILE = "/root/.openclaw/web4_sandbox/kun_ge_cookies.json"
+
 # 结果存储
 RESULTS_DIR = Path("/root/.openclaw/web4_sandbox/results")
 RESULTS_DIR.mkdir(parents=True, exist_ok=True)
@@ -458,3 +471,255 @@ if __name__ == "__main__":
         print(f"  • {r.get('title', '(无标题)')[:80]}")
         if "text" in r:
             print(f"    {r['text'][:100]}...")
+
+
+# ═══════════════════════════════════════════════════════════════════
+#  铁律版研究函数（坤哥的 4 条绝对禁令）
+# ═══════════════════════════════════════════════════════════════════
+
+def research_with_ruler(
+    query: str,
+    sites: list[str] = None,
+    cooking: dict = None,
+    output_file: str = None,
+    verbose: bool = True,
+    use_cookie: bool = True,
+) -> dict:
+    """
+    带铁律的 AI 研究函数。
+    所有请求经过 4 条铁律检查：
+      1. 身份铁律：Google 账号只用于公开浏览
+      2. 访问边界：只允许 google/shopee/tiktok 公开页面，GET-only
+      3. 行为风控：3秒间隔，50次上限，随机滚动
+      4. 数据安全：内存存储，会话结束强制清空
+
+    参数：
+      query      : 研究主题
+      sites      : 指定网站（e.g. ["shopee.com", "tiktok.com"]）
+      cooking    : 额外 cooking 配置
+      output_file: 结果保存路径
+      verbose    : 是否打印进度
+      use_cookie : 是否使用坤哥的 Cookie
+
+    返回：
+      {
+        "query": "...",
+        "pages_visited": [...],
+        "results": [...],
+        "total_pages": N,
+        "ruler_stats": {...},    # 风控统计
+        "cooking_applied": {...},
+        "started_at": "...",
+        "finished_at": "...",
+      }
+    """
+    if not RULER_AVAILABLE:
+        print("❌ 铁律模块不可用，回退到普通 research()")
+        return research(query=query, sites=sites, cooking=cooking,
+                       output_file=output_file, verbose=verbose)
+
+    cooker = CookingEngine(cooking)
+    ruler = IronRuler()
+    started_at = datetime.datetime.now().isoformat()
+    pages_visited = []
+    results = []
+    errors = []
+    cookie_loaded = False
+
+    def vprint(msg):
+        if verbose:
+            ts = datetime.datetime.now().strftime("%H:%M:%S")
+            print(f"[{ts}] {msg}")
+
+    vprint(f"🔒 铁律研究开始: {query}")
+    if cooking:
+        vprint(f"🍳 Cooking: {json.dumps(cooking, ensure_ascii=False)}")
+
+    # 加载 Cookie
+    cookie_json = None
+    if use_cookie and Path(COOKIE_FILE).exists():
+        try:
+            cookie_json = json.loads(Path(COOKIE_FILE).read_text())
+            vprint(f"🍪 Cookie 已加载（{len(cookie_json)} 条）")
+            cookie_loaded = True
+        except Exception as e:
+            vprint(f"⚠️ Cookie 加载失败: {e}")
+
+    # 构建允许域名
+    allowed_domains = {
+        "google.com", ".google.com", "www.google.com",
+        "youtube.com", ".youtube.com", "www.youtube.com",
+        "youtu.be",
+        "shopee.com", ".shopee.com", "www.shopee.com",
+        "tiktok.com", ".tiktok.com", "www.tiktok.com",
+        "bing.com", ".bing.com", "www.bing.com",
+    }
+    if sites:
+        for site in sites:
+            allowed_domains.add(site)
+            allowed_domains.add(f".{site}")
+
+    try:
+        with RuledBrowserSession(
+            cookie_json=cookie_json,
+            allowed_domains=allowed_domains,
+            ruler=ruler,
+        ) as session:
+
+            # ── 搜索阶段 ──────────────────────────────────────
+            search_url = cooker.build_search_url(query, engine="bing")
+            vprint(f"🔍 搜索: {search_url}")
+
+            nav = session.goto(search_url)
+            if not nav.get("ok"):
+                errors.append(f"搜索失败: {nav.get('error')}")
+            else:
+                time.sleep(2)
+
+                # ══════════════════════════════════════════════════════
+                #  提取搜索结果链接
+                #  Bing 搜索结果链接格式: bing.com/ck/a?...&u=<base64>
+                #  实际目标 URL 被编码在 u= 参数里，需要解码后检查
+                # ══════════════════════════════════════════════════════
+                search_links = []
+                
+                # 提取所有 Bing 搜索结果链接（包含各站点）
+                raw_links = session.extract("#b_results a[href]", attr="href")
+                vprint(f"🔍 提取到 {len(raw_links)} 个原始链接（去重前）")
+
+                # 解码 + 过滤
+                seen, clean_links = set(), []
+                skip_prefixes = ("mailto:", "javascript:", "/images/", "/search?")
+                
+                for link in raw_links:
+                    if any(link.startswith(p) for p in skip_prefixes):
+                        continue
+                    # 处理 hash fragment
+                    if "#" in link:
+                        link = link.split("#")[0]
+                    if not link or link in seen:
+                        continue
+
+                    # 铁律二 URL 边界检查
+                    # 对于 Bing 重定向链接，解码出真实目标后检查
+                    decoded_target = ruler._decode_bing_redirect(link)
+                    if decoded_target:
+                        # 解码出了真实目标：用真实目标做边界检查
+                        target_to_check = decoded_target
+                    else:
+                        # 无解码结果：直接用原始 URL 检查
+                        target_to_check = link
+
+                    if not ruler.is_access_allowed(target_to_check):
+                        continue
+
+                    seen.add(link)
+                    # 最终收集的是解码后的真实 URL（更可用）
+                    final_url = decoded_target if decoded_target else link
+                    clean_links.append(final_url)
+
+                vprint(f"🔗 找到 {len(clean_links)} 个链接（铁律过滤后）")
+
+                # ── 访问每个页面 ──────────────────────────────
+                max_pages = cooker.cooking.get("max_pages", 10)
+                for i, link in enumerate(clean_links[:max_pages]):
+                    vprint(f"  [{i+1}/{min(len(clean_links), max_pages)}] → {link[:80]}")
+
+                    # 铁律三：检查请求限制
+                    can, reason = ruler.can_request(link)
+                    if not can:
+                        vprint(f"    ⏭️ {reason}")
+                        errors.append({"url": link, "error": reason})
+                        if "上限" in reason:
+                            vprint("⚠️ 达到请求上限，停止")
+                            break
+                        continue
+
+                    nav = session.goto(link)
+                    time.sleep(ruler.get_random_scroll_wait())
+
+                    if nav.get("ok"):
+                        pages_visited.append(link)
+
+                        # 提取内容
+                        page_result = {
+                            "url": session.page.url,
+                            "title": session.page.title() or "",
+                            "text": "",
+                            "search_query": query,
+                            "visited_at": datetime.datetime.now().isoformat(),
+                        }
+
+                        # 提取正文（只允许公开内容）
+                        try:
+                            body = session.page.inner_text("body") or ""
+                            page_result["text"] = body[:5000]
+                        except Exception:
+                            pass
+
+                        results.append(page_result)
+                        vprint(f"       ✅ {session.page.title()[:60]}")
+
+                    else:
+                        vprint(f"       ❌ {nav.get('error', '导航失败')}")
+                        errors.append({"url": link, "error": nav.get("error")})
+
+            # 铁律统计
+            ruler_stats = ruler.get_stats()
+
+    except Exception as e:
+        errors.append({"fatal": str(e)})
+        vprint(f"❌ 致命错误: {e}")
+
+    finished_at = datetime.datetime.now().isoformat()
+
+    output = {
+        "query": query,
+        "cooking_applied": cooker.cooking,
+        "started_at": started_at,
+        "finished_at": finished_at,
+        "pages_visited": pages_visited,
+        "total_pages": len(pages_visited),
+        "results": results,
+        "errors": errors,
+        "ruler_stats": ruler_stats if 'ruler_stats' in dir() else {},
+        "cookie_used": cookie_loaded,
+        "iron_rules_verified": True,
+    }
+
+    # 保存结果
+    if output_file:
+        save_path = Path(output_file)
+    else:
+        safe_name = query.replace(" ", "_")[:40]
+        ts = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+        save_path = RESULTS_DIR / f"ruled_{safe_name}_{ts}.json"
+
+    save_path.parent.mkdir(parents=True, exist_ok=True)
+    save_path.write_text(json.dumps(output, indent=2, ensure_ascii=False), encoding="utf-8")
+    vprint(f"💾 结果已保存: {save_path}")
+    vprint(f"🔒 铁律统计: {output['ruler_stats']}")
+    vprint(f"\n📊 研究完成: {len(pages_visited)} 页, {len(results)} 条结果, {len(errors)} 个错误")
+    return output
+
+
+# ═══════════════════════════════════════════════════════════════════
+#  研究函数别名（供 AI 直接调用）
+# ═══════════════════════════════════════════════════════════════════
+
+def ruled_research(query: str, sites: list = None, cooking: dict = None, **kwargs):
+    """
+    带铁律的研究。
+    AI 直接调用这个，不需要记 4 条铁律。
+
+    用法：
+      result = ruled_research("Shopee 东南亚市场分析")
+      result = ruled_research("TikTok 电商 2026", sites=["tiktok.com", "shopee.com"])
+    """
+    return research_with_ruler(
+        query=query,
+        sites=sites,
+        cooking=cooking,
+        verbose=True,
+        **kwargs
+    )

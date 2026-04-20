@@ -1,0 +1,18 @@
+{
+  "jobId": "T-INTEGRATION-001_162640",
+  "name": "T-INTEGRATION-001",
+  "status": "running",
+  "progress": 0,
+  "step": "开始执行",
+  "message": "深度整合验证-代码审计",
+  "startedAt": "2026-04-19 16:26:40",
+  "updatedAt": "2026-04-19 16:26:40",
+  "steps": [
+    {
+      "step": 0,
+      "name": "开始执行",
+      "progress": 0,
+      "timestamp": "2026-04-19 16:26:40"
+    }
+  ]
+}

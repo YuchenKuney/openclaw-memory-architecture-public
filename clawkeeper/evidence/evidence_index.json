@@ -1,0 +1,506 @@
+[
+  {
+    "time": "2026-04-19 12:41:56",
+    "message": "[CRITICAL] Test",
+    "evidence_files": [
+      "/root/.openclaw/workspace/clawkeeper/evidence/context_20260419_124156.json",
+      "/root/.openclaw/workspace/clawkeeper/evidence/ps_snapshot_20260419_124156.txt",
+      "/root/.openclaw/workspace/clawkeeper/evidence/audit_tail_20260419_124156.log"
+    ]
+  },
+  {
+    "time": "2026-04-19 12:41:57",
+    "message": "[CRITICAL] Test",
+    "evidence_files": [
+      "/root/.openclaw/workspace/clawkeeper/evidence/context_20260419_124156.json",
+      "/root/.openclaw/workspace/clawkeeper/evidence/ps_snapshot_20260419_124156.txt",
+      "/root/.openclaw/workspace/clawkeeper/evidence/audit_tail_20260419_124156.log"
+    ]
+  },
+  {
+    "time": "2026-04-19 14:54:36",
+    "message": "[CRITICAL] Test",
+    "evidence_files": [
+      "/root/.openclaw/workspace/clawkeeper/evidence/context_20260419_145436.json",
+      "/root/.openclaw/workspace/clawkeeper/evidence/ps_snapshot_20260419_145436.txt",
+      "/root/.openclaw/workspace/clawkeeper/evidence/audit_tail_20260419_145436.log"
+    ]
+  },
+  {
+    "time": "2026-04-19 14:54:37",
+    "message": "[CRITICAL] Test",
+    "evidence_files": [
+      "/root/.openclaw/workspace/clawkeeper/evidence/context_20260419_145436.json",
+      "/root/.openclaw/workspace/clawkeeper/evidence/ps_snapshot_20260419_145436.txt",
+      "/root/.openclaw/workspace/clawkeeper/evidence/audit_tail_20260419_145436.log"
+    ]
+  },
+  {
+    "time": "2026-04-19 14:54:48",
+    "message": "[CRITICAL] Test",
+    "evidence_files": [
+      "/root/.openclaw/workspace/clawkeeper/evidence/context_20260419_145448.json",
+      "/root/.openclaw/workspace/clawkeeper/evidence/ps_snapshot_20260419_145448.txt",
+      "/root/.openclaw/workspace/clawkeeper/evidence/audit_tail_20260419_145448.log"
+    ]
+  },
+  {
+    "time": "2026-04-19 14:54:49",
+    "message": "[CRITICAL] Test",
+    "evidence_files": [
+      "/root/.openclaw/workspace/clawkeeper/evidence/context_20260419_145448.json",
+      "/root/.openclaw/workspace/clawkeeper/evidence/ps_snapshot_20260419_145448.txt",
+      "/root/.openclaw/workspace/clawkeeper/evidence/audit_tail_20260419_145448.log"
+    ]
+  },
+  {
+    "time": "2026-04-19 14:56:30",
+    "message": "[CRITICAL] Test",
+    "evidence_files": [
+      "/root/.openclaw/workspace/clawkeeper/evidence/context_20260419_145629.json",
+      "/root/.openclaw/workspace/clawkeeper/evidence/ps_snapshot_20260419_145629.txt",
+      "/root/.openclaw/workspace/clawkeeper/evidence/audit_tail_20260419_145629.log"
+    ]
+  },
+  {
+    "time": "2026-04-19 14:56:30",
+    "message": "[CRITICAL] Test",
+    "evidence_files": [
+      "/root/.openclaw/workspace/clawkeeper/evidence/context_20260419_145630.json",
+      "/root/.openclaw/workspace/clawkeeper/evidence/ps_snapshot_20260419_145630.txt",
+      "/root/.openclaw/workspace/clawkeeper/evidence/audit_tail_20260419_145630.log"
+    ]
+  },
+  {
+    "time": "2026-04-19 14:57:43",
+    "message": "[CRITICAL] Test",
+    "evidence_files": [
+      "/root/.openclaw/workspace/clawkeeper/evidence/context_20260419_145742.json",
+      "/root/.openclaw/workspace/clawkeeper/evidence/ps_snapshot_20260419_145742.txt",
+      "/root/.openclaw/workspace/clawkeeper/evidence/audit_tail_20260419_145742.log"
+    ]
+  },
+  {
+    "time": "2026-04-19 14:57:43",
+    "message": "[CRITICAL] Test",
+    "evidence_files": [
+      "/root/.openclaw/workspace/clawkeeper/evidence/context_20260419_145743.json",
+      "/root/.openclaw/workspace/clawkeeper/evidence/ps_snapshot_20260419_145743.txt",
+      "/root/.openclaw/workspace/clawkeeper/evidence/audit_tail_20260419_145743.log"
+    ]
+  },
+  {
+    "time": "2026-04-19 14:59:02",
+    "message": "[CRITICAL] Test",
+    "evidence_files": [
+      "/root/.openclaw/workspace/clawkeeper/evidence/context_20260419_145902.json",
+      "/root/.openclaw/workspace/clawkeeper/evidence/ps_snapshot_20260419_145902.txt",
+      "/root/.openclaw/workspace/clawkeeper/evidence/audit_tail_20260419_145902.log"
+    ]
+  },
+  {
+    "time": "2026-04-19 14:59:03",
+    "message": "[CRITICAL] Test",
+    "evidence_files": [
+      "/root/.openclaw/workspace/clawkeeper/evidence/context_20260419_145902.json",
+      "/root/.openclaw/workspace/clawkeeper/evidence/ps_snapshot_20260419_145902.txt",
+      "/root/.openclaw/workspace/clawkeeper/evidence/audit_tail_20260419_145902.log"
+    ]
+  },
+  {
+    "time": "2026-04-19 14:59:15",
+    "message": "[CRITICAL] Test",
+    "evidence_files": [
+      "/root/.openclaw/workspace/clawkeeper/evidence/context_20260419_145914.json",
+      "/root/.openclaw/workspace/clawkeeper/evidence/ps_snapshot_20260419_145914.txt",
+      "/root/.openclaw/workspace/clawkeeper/evidence/audit_tail_20260419_145914.log"
+    ]
+  },
+  {
+    "time": "2026-04-19 14:59:15",
+    "message": "[CRITICAL] Test",
+    "evidence_files": [
+      "/root/.openclaw/workspace/clawkeeper/evidence/context_20260419_145915.json",
+      "/root/.openclaw/workspace/clawkeeper/evidence/ps_snapshot_20260419_145915.txt",
+      "/root/.openclaw/workspace/clawkeeper/evidence/audit_tail_20260419_145915.log"
+    ]
+  },
+  {
+    "time": "2026-04-19 15:12:53",
+    "message": "[CRITICAL] Test",
+    "evidence_files": [
+      "/root/.openclaw/workspace/clawkeeper/evidence/context_20260419_151253.json",
+      "/root/.openclaw/workspace/clawkeeper/evidence/ps_snapshot_20260419_151253.txt",
+      "/root/.openclaw/workspace/clawkeeper/evidence/audit_tail_20260419_151253.log"
+    ]
+  },
+  {
+    "time": "2026-04-19 15:12:54",
+    "message": "[CRITICAL] Test",
+    "evidence_files": [
+      "/root/.openclaw/workspace/clawkeeper/evidence/context_20260419_151253.json",
+      "/root/.openclaw/workspace/clawkeeper/evidence/ps_snapshot_20260419_151253.txt",
+      "/root/.openclaw/workspace/clawkeeper/evidence/audit_tail_20260419_151253.log"
+    ]
+  },
+  {
+    "time": "2026-04-19 15:13:05",
+    "message": "[CRITICAL] Test",
+    "evidence_files": [
+      "/root/.openclaw/workspace/clawkeeper/evidence/context_20260419_151304.json",
+      "/root/.openclaw/workspace/clawkeeper/evidence/ps_snapshot_20260419_151304.txt",
+      "/root/.openclaw/workspace/clawkeeper/evidence/audit_tail_20260419_151304.log"
+    ]
+  },
+  {
+    "time": "2026-04-19 15:13:05",
+    "message": "[CRITICAL] Test",
+    "evidence_files": [
+      "/root/.openclaw/workspace/clawkeeper/evidence/context_20260419_151305.json",
+      "/root/.openclaw/workspace/clawkeeper/evidence/ps_snapshot_20260419_151305.txt",
+      "/root/.openclaw/workspace/clawkeeper/evidence/audit_tail_20260419_151305.log"
+    ]
+  },
+  {
+    "time": "2026-04-19 15:22:32",
+    "message": "[CRITICAL] Test",
+    "evidence_files": [
+      "/root/.openclaw/workspace/clawkeeper/evidence/context_20260419_152231.json",
+      "/root/.openclaw/workspace/clawkeeper/evidence/ps_snapshot_20260419_152231.txt",
+      "/root/.openclaw/workspace/clawkeeper/evidence/audit_tail_20260419_152231.log"
+    ]
+  },
+  {
+    "time": "2026-04-19 15:22:32",
+    "message": "[CRITICAL] Test",
+    "evidence_files": [
+      "/root/.openclaw/workspace/clawkeeper/evidence/context_20260419_152232.json",
+      "/root/.openclaw/workspace/clawkeeper/evidence/ps_snapshot_20260419_152232.txt",
+      "/root/.openclaw/workspace/clawkeeper/evidence/audit_tail_20260419_152232.log"
+    ]
+  },
+  {
+    "time": "2026-04-19 15:22:45",
+    "message": "[CRITICAL] Test",
+    "evidence_files": [
+      "/root/.openclaw/workspace/clawkeeper/evidence/context_20260419_152244.json",
+      "/root/.openclaw/workspace/clawkeeper/evidence/ps_snapshot_20260419_152244.txt",
+      "/root/.openclaw/workspace/clawkeeper/evidence/audit_tail_20260419_152244.log"
+    ]
+  },
+  {
+    "time": "2026-04-19 15:22:45",
+    "message": "[CRITICAL] Test",
+    "evidence_files": [
+      "/root/.openclaw/workspace/clawkeeper/evidence/context_20260419_152245.json",
+      "/root/.openclaw/workspace/clawkeeper/evidence/ps_snapshot_20260419_152245.txt",
+      "/root/.openclaw/workspace/clawkeeper/evidence/audit_tail_20260419_152245.log"
+    ]
+  },
+  {
+    "time": "2026-04-19 15:22:57",
+    "message": "[CRITICAL] Test",
+    "evidence_files": [
+      "/root/.openclaw/workspace/clawkeeper/evidence/context_20260419_152256.json",
+      "/root/.openclaw/workspace/clawkeeper/evidence/ps_snapshot_20260419_152256.txt",
+      "/root/.openclaw/workspace/clawkeeper/evidence/audit_tail_20260419_152256.log"
+    ]
+  },
+  {
+    "time": "2026-04-19 15:22:57",
+    "message": "[CRITICAL] Test",
+    "evidence_files": [
+      "/root/.openclaw/workspace/clawkeeper/evidence/context_20260419_152257.json",
+      "/root/.openclaw/workspace/clawkeeper/evidence/ps_snapshot_20260419_152257.txt",
+      "/root/.openclaw/workspace/clawkeeper/evidence/audit_tail_20260419_152257.log"
+    ]
+  },
+  {
+    "time": "2026-04-19 15:23:15",
+    "message": "[CRITICAL] Test",
+    "evidence_files": [
+      "/root/.openclaw/workspace/clawkeeper/evidence/context_20260419_152315.json",
+      "/root/.openclaw/workspace/clawkeeper/evidence/ps_snapshot_20260419_152315.txt",
+      "/root/.openclaw/workspace/clawkeeper/evidence/audit_tail_20260419_152315.log"
+    ]
+  },
+  {
+    "time": "2026-04-19 15:23:16",
+    "message": "[CRITICAL] Test",
+    "evidence_files": [
+      "/root/.openclaw/workspace/clawkeeper/evidence/context_20260419_152315.json",
+      "/root/.openclaw/workspace/clawkeeper/evidence/ps_snapshot_20260419_152315.txt",
+      "/root/.openclaw/workspace/clawkeeper/evidence/audit_tail_20260419_152315.log"
+    ]
+  },
+  {
+    "time": "2026-04-19 15:23:27",
+    "message": "[CRITICAL] Test",
+    "evidence_files": [
+      "/root/.openclaw/workspace/clawkeeper/evidence/context_20260419_152327.json",
+      "/root/.openclaw/workspace/clawkeeper/evidence/ps_snapshot_20260419_152327.txt",
+      "/root/.openclaw/workspace/clawkeeper/evidence/audit_tail_20260419_152327.log"
+    ]
+  },
+  {
+    "time": "2026-04-19 15:23:28",
+    "message": "[CRITICAL] Test",
+    "evidence_files": [
+      "/root/.openclaw/workspace/clawkeeper/evidence/context_20260419_152327.json",
+      "/root/.openclaw/workspace/clawkeeper/evidence/ps_snapshot_20260419_152327.txt",
+      "/root/.openclaw/workspace/clawkeeper/evidence/audit_tail_20260419_152327.log"
+    ]
+  },
+  {
+    "time": "2026-04-19 15:24:04",
+    "message": "[CRITICAL] Test",
+    "evidence_files": [
+      "/root/.openclaw/workspace/clawkeeper/evidence/context_20260419_152404.json",
+      "/root/.openclaw/workspace/clawkeeper/evidence/ps_snapshot_20260419_152404.txt",
+      "/root/.openclaw/workspace/clawkeeper/evidence/audit_tail_20260419_152404.log"
+    ]
+  },
+  {
+    "time": "2026-04-19 15:24:05",
+    "message": "[CRITICAL] Test",
+    "evidence_files": [
+      "/root/.openclaw/workspace/clawkeeper/evidence/context_20260419_152404.json",
+      "/root/.openclaw/workspace/clawkeeper/evidence/ps_snapshot_20260419_152404.txt",
+      "/root/.openclaw/workspace/clawkeeper/evidence/audit_tail_20260419_152404.log"
+    ]
+  },
+  {
+    "time": "2026-04-19 15:24:16",
+    "message": "[CRITICAL] Test",
+    "evidence_files": [
+      "/root/.openclaw/workspace/clawkeeper/evidence/context_20260419_152416.json",
+      "/root/.openclaw/workspace/clawkeeper/evidence/ps_snapshot_20260419_152416.txt",
+      "/root/.openclaw/workspace/clawkeeper/evidence/audit_tail_20260419_152416.log"
+    ]
+  },
+  {
+    "time": "2026-04-19 15:24:17",
+    "message": "[CRITICAL] Test",
+    "evidence_files": [
+      "/root/.openclaw/workspace/clawkeeper/evidence/context_20260419_152416.json",
+      "/root/.openclaw/workspace/clawkeeper/evidence/ps_snapshot_20260419_152416.txt",
+      "/root/.openclaw/workspace/clawkeeper/evidence/audit_tail_20260419_152416.log"
+    ]
+  },
+  {
+    "time": "2026-04-19 15:24:40",
+    "message": "[CRITICAL] Test",
+    "evidence_files": [
+      "/root/.openclaw/workspace/clawkeeper/evidence/context_20260419_152439.json",
+      "/root/.openclaw/workspace/clawkeeper/evidence/ps_snapshot_20260419_152439.txt",
+      "/root/.openclaw/workspace/clawkeeper/evidence/audit_tail_20260419_152439.log"
+    ]
+  },
+  {
+    "time": "2026-04-19 15:24:40",
+    "message": "[CRITICAL] Test",
+    "evidence_files": [
+      "/root/.openclaw/workspace/clawkeeper/evidence/context_20260419_152440.json",
+      "/root/.openclaw/workspace/clawkeeper/evidence/ps_snapshot_20260419_152440.txt",
+      "/root/.openclaw/workspace/clawkeeper/evidence/audit_tail_20260419_152440.log"
+    ]
+  },
+  {
+    "time": "2026-04-19 15:25:05",
+    "message": "[CRITICAL] Test",
+    "evidence_files": [
+      "/root/.openclaw/workspace/clawkeeper/evidence/context_20260419_152504.json",
+      "/root/.openclaw/workspace/clawkeeper/evidence/ps_snapshot_20260419_152504.txt",
+      "/root/.openclaw/workspace/clawkeeper/evidence/audit_tail_20260419_152504.log"
+    ]
+  },
+  {
+    "time": "2026-04-19 15:25:05",
+    "message": "[CRITICAL] Test",
+    "evidence_files": [
+      "/root/.openclaw/workspace/clawkeeper/evidence/context_20260419_152505.json",
+      "/root/.openclaw/workspace/clawkeeper/evidence/ps_snapshot_20260419_152505.txt",
+      "/root/.openclaw/workspace/clawkeeper/evidence/audit_tail_20260419_152505.log"
+    ]
+  },
+  {
+    "time": "2026-04-19 15:25:34",
+    "message": "[CRITICAL] Test",
+    "evidence_files": [
+      "/root/.openclaw/workspace/clawkeeper/evidence/context_20260419_152534.json",
+      "/root/.openclaw/workspace/clawkeeper/evidence/ps_snapshot_20260419_152534.txt",
+      "/root/.openclaw/workspace/clawkeeper/evidence/audit_tail_20260419_152534.log"
+    ]
+  },
+  {
+    "time": "2026-04-19 15:25:35",
+    "message": "[CRITICAL] Test",
+    "evidence_files": [
+      "/root/.openclaw/workspace/clawkeeper/evidence/context_20260419_152534.json",
+      "/root/.openclaw/workspace/clawkeeper/evidence/ps_snapshot_20260419_152534.txt",
+      "/root/.openclaw/workspace/clawkeeper/evidence/audit_tail_20260419_152534.log"
+    ]
+  },
+  {
+    "time": "2026-04-19 15:25:49",
+    "message": "[CRITICAL] Test",
+    "evidence_files": [
+      "/root/.openclaw/workspace/clawkeeper/evidence/context_20260419_152548.json",
+      "/root/.openclaw/workspace/clawkeeper/evidence/ps_snapshot_20260419_152548.txt",
+      "/root/.openclaw/workspace/clawkeeper/evidence/audit_tail_20260419_152548.log"
+    ]
+  },
+  {
+    "time": "2026-04-19 15:25:49",
+    "message": "[CRITICAL] Test",
+    "evidence_files": [
+      "/root/.openclaw/workspace/clawkeeper/evidence/context_20260419_152549.json",
+      "/root/.openclaw/workspace/clawkeeper/evidence/ps_snapshot_20260419_152549.txt",
+      "/root/.openclaw/workspace/clawkeeper/evidence/audit_tail_20260419_152549.log"
+    ]
+  },
+  {
+    "time": "2026-04-19 15:26:01",
+    "message": "[CRITICAL] Test",
+    "evidence_files": [
+      "/root/.openclaw/workspace/clawkeeper/evidence/context_20260419_152600.json",
+      "/root/.openclaw/workspace/clawkeeper/evidence/ps_snapshot_20260419_152600.txt",
+      "/root/.openclaw/workspace/clawkeeper/evidence/audit_tail_20260419_152600.log"
+    ]
+  },
+  {
+    "time": "2026-04-19 15:26:01",
+    "message": "[CRITICAL] Test",
+    "evidence_files": [
+      "/root/.openclaw/workspace/clawkeeper/evidence/context_20260419_152601.json",
+      "/root/.openclaw/workspace/clawkeeper/evidence/ps_snapshot_20260419_152601.txt",
+      "/root/.openclaw/workspace/clawkeeper/evidence/audit_tail_20260419_152601.log"
+    ]
+  },
+  {
+    "time": "2026-04-19 15:26:15",
+    "message": "[CRITICAL] Test",
+    "evidence_files": [
+      "/root/.openclaw/workspace/clawkeeper/evidence/context_20260419_152614.json",
+      "/root/.openclaw/workspace/clawkeeper/evidence/ps_snapshot_20260419_152614.txt",
+      "/root/.openclaw/workspace/clawkeeper/evidence/audit_tail_20260419_152614.log"
+    ]
+  },
+  {
+    "time": "2026-04-19 15:26:15",
+    "message": "[CRITICAL] Test",
+    "evidence_files": [
+      "/root/.openclaw/workspace/clawkeeper/evidence/context_20260419_152615.json",
+      "/root/.openclaw/workspace/clawkeeper/evidence/ps_snapshot_20260419_152615.txt",
+      "/root/.openclaw/workspace/clawkeeper/evidence/audit_tail_20260419_152615.log"
+    ]
+  },
+  {
+    "time": "2026-04-19 15:26:48",
+    "message": "[CRITICAL] Test",
+    "evidence_files": [
+      "/root/.openclaw/workspace/clawkeeper/evidence/context_20260419_152648.json",
+      "/root/.openclaw/workspace/clawkeeper/evidence/ps_snapshot_20260419_152648.txt",
+      "/root/.openclaw/workspace/clawkeeper/evidence/audit_tail_20260419_152648.log"
+    ]
+  },
+  {
+    "time": "2026-04-19 15:26:49",
+    "message": "[CRITICAL] Test",
+    "evidence_files": [
+      "/root/.openclaw/workspace/clawkeeper/evidence/context_20260419_152648.json",
+      "/root/.openclaw/workspace/clawkeeper/evidence/ps_snapshot_20260419_152648.txt",
+      "/root/.openclaw/workspace/clawkeeper/evidence/audit_tail_20260419_152648.log"
+    ]
+  },
+  {
+    "time": "2026-04-19 15:27:40",
+    "message": "[CRITICAL] Test",
+    "evidence_files": [
+      "/root/.openclaw/workspace/clawkeeper/evidence/context_20260419_152739.json",
+      "/root/.openclaw/workspace/clawkeeper/evidence/ps_snapshot_20260419_152739.txt",
+      "/root/.openclaw/workspace/clawkeeper/evidence/audit_tail_20260419_152739.log"
+    ]
+  },
+  {
+    "time": "2026-04-19 15:27:40",
+    "message": "[CRITICAL] Test",
+    "evidence_files": [
+      "/root/.openclaw/workspace/clawkeeper/evidence/context_20260419_152740.json",
+      "/root/.openclaw/workspace/clawkeeper/evidence/ps_snapshot_20260419_152740.txt",
+      "/root/.openclaw/workspace/clawkeeper/evidence/audit_tail_20260419_152740.log"
+    ]
+  },
+  {
+    "time": "2026-04-19 15:28:36",
+    "message": "[CRITICAL] Test",
+    "evidence_files": [
+      "/root/.openclaw/workspace/clawkeeper/evidence/context_20260419_152835.json",
+      "/root/.openclaw/workspace/clawkeeper/evidence/ps_snapshot_20260419_152835.txt",
+      "/root/.openclaw/workspace/clawkeeper/evidence/audit_tail_20260419_152835.log"
+    ]
+  },
+  {
+    "time": "2026-04-19 15:28:36",
+    "message": "[CRITICAL] Test",
+    "evidence_files": [
+      "/root/.openclaw/workspace/clawkeeper/evidence/context_20260419_152836.json",
+      "/root/.openclaw/workspace/clawkeeper/evidence/ps_snapshot_20260419_152836.txt",
+      "/root/.openclaw/workspace/clawkeeper/evidence/audit_tail_20260419_152836.log"
+    ]
+  },
+  {
+    "time": "2026-04-19 15:31:07",
+    "message": "[CRITICAL] Test",
+    "evidence_files": [
+      "/root/.openclaw/workspace/clawkeeper/evidence/context_20260419_153106.json",
+      "/root/.openclaw/workspace/clawkeeper/evidence/ps_snapshot_20260419_153106.txt",
+      "/root/.openclaw/workspace/clawkeeper/evidence/audit_tail_20260419_153106.log"
+    ]
+  },
+  {
+    "time": "2026-04-19 15:31:07",
+    "message": "[CRITICAL] Test",
+    "evidence_files": [
+      "/root/.openclaw/workspace/clawkeeper/evidence/context_20260419_153107.json",
+      "/root/.openclaw/workspace/clawkeeper/evidence/ps_snapshot_20260419_153107.txt",
+      "/root/.openclaw/workspace/clawkeeper/evidence/audit_tail_20260419_153107.log"
+    ]
+  },
+  {
+    "time": "2026-04-19 16:22:29",
+    "message": "[CRITICAL] Test",
+    "evidence_files": [
+      "/root/.openclaw/workspace/clawkeeper/evidence/context_20260419_162229.json",
+      "/root/.openclaw/workspace/clawkeeper/evidence/ps_snapshot_20260419_162229.txt",
+      "/root/.openclaw/workspace/clawkeeper/evidence/audit_tail_20260419_162229.log"
+    ]
+  },
+  {
+    "time": "2026-04-19 16:22:30",
+    "message": "[CRITICAL] Test",
+    "evidence_files": [
+      "/root/.openclaw/workspace/clawkeeper/evidence/context_20260419_162229.json",
+      "/root/.openclaw/workspace/clawkeeper/evidence/ps_snapshot_20260419_162229.txt",
+      "/root/.openclaw/workspace/clawkeeper/evidence/audit_tail_20260419_162229.log"
+    ]
+  },
+  {
+    "time": "2026-04-19 16:22:41",
+    "message": "[CRITICAL] Test",
+    "evidence_files": [
+      "/root/.openclaw/workspace/clawkeeper/evidence/context_20260419_162241.json",
+      "/root/.openclaw/workspace/clawkeeper/evidence/ps_snapshot_20260419_162241.txt",
+      "/root/.openclaw/workspace/clawkeeper/evidence/audit_tail_20260419_162241.log"
+    ]
+  },
+  {
+    "time": "2026-04-19 16:22:42",
+    "message": "[CRITICAL] Test",
+    "evidence_files": [
+      "/root/.openclaw/workspace/clawkeeper/evidence/context_20260419_162241.json",
+      "/root/.openclaw/workspace/clawkeeper/evidence/ps_snapshot_20260419_162241.txt",
+      "/root/.openclaw/workspace/clawkeeper/evidence/audit_tail_20260419_162241.log"
+    ]
+  }
+]

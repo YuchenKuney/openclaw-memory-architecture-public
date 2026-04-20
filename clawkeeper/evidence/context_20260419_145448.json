@@ -1,0 +1,16 @@
+{
+  "timestamp": "20260419_145448",
+  "action": {
+    "level": "CRITICAL",
+    "action_type": "ALLOW",
+    "message": "[CRITICAL] Test",
+    "details": {
+      "path": "/workspace/AGENTS.md"
+    },
+    "can_proceed": true,
+    "timestamp": 1776603288.6423302
+  },
+  "path": "/workspace/AGENTS.md",
+  "event": null,
+  "level": 4
+}

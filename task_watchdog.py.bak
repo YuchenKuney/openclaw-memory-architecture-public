@@ -155,9 +155,9 @@ def start_monitor_process() -> Optional[int]:
         proc = subprocess.Popen(
             [sys.executable, str(MONITOR_SCRIPT)],
             cwd=str(WORKSPACE),
-            stdin=subprocess.DEVNULL,
             stdout=subprocess.DEVNULL,
-            stderr=subprocess.DEVNULL
+            stderr=subprocess.DEVNULL,
+            start_new_session=True
         )
         return proc.pid
     except Exception as e:
@@ -352,10 +352,9 @@ def main():
     if is_daemon:
         pid = os.fork()
         if pid > 0:
+            print(f"[Watchdog] 🚀 已后台化，PID={pid}")
             pid_file = WORKSPACE / ".watchdog.pid"
             pid_file.write_text(str(pid))
-            print(f"[Watchdog] 🚀 已后台化，PID={pid}")
-            import time; time.sleep(2)
             return
         os.chdir("/")
         os.setsid()

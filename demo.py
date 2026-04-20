@@ -417,22 +417,18 @@ def run_scenario_demo():
 
     try:
         from knowledge_graph import KnowledgeGraph
-        distill = KnowledgeGraph()
+        kg = KnowledgeGraph()
         try:
-            distill.load()
+            kg.load()
         except:
             pass
     except:
-        distill = None
+        kg = None
 
-    try:
-        from clawkeeper.user_profile import UserProfile
-        profile = UserProfile()
-        profile.load()
-    except:
-        profile = None
+    # Profile 用 runner 内置的（内含结构化 update 逻辑）
+    profile = None  # runner 内部会创建 Profile()
 
-    runner = DemoRunner(audit=audit, distill=distill, profile=profile)
+    runner = DemoRunner(audit=audit, distill=kg, profile=profile)
 
     print("=" * 60)
     print("🧠 OpenClaw 记忆系统 · 电商场景演示")

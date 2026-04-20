@@ -516,3 +516,59 @@ openclaw tasks spawn --runtime=subagent --task-file task_monitor.py
 ---
 
 _Last updated: 2026-04-19_
+
+
+---
+
+## v10 落地状态（2026-04-20）
+
+### ✅ 已完成的铁律
+
+| 铁律 | 文件 | 实现方式 |
+|------|------|----------|
+| 子 agent 实时推送「做了什么」 | `task_monitor.py` | `notify_event/notify_started/notify_completion` |
+| 子 agent 推送「怎么做」 | `task_monitor.py` + `progress_tracker.py` | `how` 字段透传到飞书卡片 |
+| 子 agent 推送「预计多久」 | `progress_tracker.py` | `eta_seconds` 自动计算，飞书卡片显示 ⏱️ |
+| 看门狗自动拉起子 agent | `task_watchdog.py` | `watchdog_loop()` → `start_monitor_process()` |
+| 看门狗不频繁骚扰（反黑箱触发） | `task_watchdog.py` | 移除日常心跳飞书通知，只在掉线时告警 |
+| 铁律写死代码里 | `web4_cookie_injector.py` | `ALLOWED_DOMAINS` / `BLOCKED_DOMAINS` 硬编码 |
+
+### 关键文件索引
+
+```
+反黑箱通知链（子 agent → 飞书）
+  scripts/progress_tracker.py   ← 主 agent 调用：start/update/done，带 how+eta
+  task_monitor.py               ← 子 agent 扫描 progress 文件，推送飞书卡片
+  task_watchdog.py               ← 守护 task_monitor，掉线才通知
+
+Web4.0 沙箱浏览器（铁律内置）
+  web4_container.py              ← Linux Namespace 隔离
+  web4_browser.py               ← Playwright stealth 浏览器
+  web4_controller.py             ← research() 函数，遵守铁律
+  web4_cookie_injector.py        ← Cookie 铁律过滤（ALLOWED/BLOCKED 硬编码）
+  web4_nvidia_nim.py            ← NVIDIA NIM API，133+ 模型
+  web4_shopee_researcher.py      ← Shopee 市场研究，E2E 测试通过
+```
+
+### progress_tracker.py 用法（主 agent 调用入口）
+
+```bash
+# 开始任务（告诉坤哥：要做什么、怎么做、共几步）
+python3 scripts/progress_tracker.py start "审计 memory_protocol.py" \
+  --how "使用 AST 静态分析 + 危险函数模式匹配" --steps 4
+
+# 更新进度（告诉坤哥：进行到哪步、怎么做、预计多久）
+python3 scripts/progress_tracker.py <job_id> 50 "Step 2/4: 检查命令注入" \
+  --how "遍历 AST 节点，匹配 os.system/popen/subprocess.call" --eta 180
+
+# 完成任务
+python3 scripts/progress_tracker.py done <job_id>
+```
+
+### 看门狗通知策略（反黑箱触发式）
+
+- ✅ 日常心跳：只更新 `.watchdog_heartbeat.json`，**不飞书通知**
+- ✅ 子 agent 掉线：watchdog 自动拉起 → **飞书告警**
+- ✅ memory 被篡改：完整性检查失败 → **飞书告警**
+
+_Last updated: 2026-04-20 v10_

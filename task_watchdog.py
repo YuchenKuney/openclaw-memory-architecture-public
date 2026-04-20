@@ -290,18 +290,8 @@ def watchdog_loop(daemon: bool = False, once: bool = False):
             # 更新心跳
             update_heartbeat(state, alive)
 
-            # 每 30 秒发送一次心跳（带上当前任务风险等级）
+            # 每 30 秒更新一次心跳文件（不通知）
             if time.time() - last_heartbeat >= 30:
-                step, level = get_current_task_info()
-                level_names = ["SAFE", "LOW", "MEDIUM", "HIGH", "CRITICAL"]
-                level_name = level_names[level] if level < len(level_names) else "UNKNOWN"
-                pid = state.get("monitor_pid")
-                restarts = state.get("restart_count", 0)
-                status_icon = "🟢" if alive else "🔴"
-                send_simple_msg(
-                    f"🐕 心跳 {datetime.now().strftime('%H:%M:%S')} | {status_icon} 监控{'存活' if alive else '停止'} | PID:{pid} | 重启:{restarts}次 | 当前:{level_name} | {step}",
-                    level_names[level] if level < len(level_names) else "INFO",
-                )
                 last_heartbeat = time.time()
 
             # 每 5 分钟检查 memory 完整性

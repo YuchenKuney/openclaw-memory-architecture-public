@@ -164,7 +164,7 @@ def classify_step_event(step: str, status: str) -> int:
 # ============ 进度推送（按等级决定行为）============
 
 def notify_event(task_name: str, progress: float, step: str, status: str,
-                 event_type: str, error: str = None):
+                 event_type: str, error: str = None, how: str = "", eta_seconds: int = 0):
     """
     事件推送主函数（与 interceptor.py 的 intercept() 逻辑对齐）
     根据风险等级决定推送深度
@@ -182,11 +182,16 @@ def notify_event(task_name: str, progress: float, step: str, status: str,
         return
 
     # ========== MEDIUM：警告卡片 ==========
+    # 反黑箱：计算剩余时间和步骤进度
+    eta_str = f"\n\n⏱️  预计 {eta_seconds}秒 后完成" if eta_seconds > 0 else ""
+    how_str = f"\n\n🔧 做法：{how}" if how else ""
+    steps_str = f"\n📋 步骤进度：{progress:.0f}%" if progress > 0 else ""
+
     if level == AlertLevel.MEDIUM:
         send_card(
             AlertLevel.MEDIUM,
             title=f"⚠️  {task_name}",
-            body=f"**任务进行中**\n\n{bar} **{progress:.0f}%**\n📍 **{step}**\n\n🔍 检测到潜在风险操作，请确认",
+            body=f"**任务进行中**{eta_str}{how_str}\n\n{bar} **{progress:.0f}%**{steps_str}\n📍 **{step}**\n\n🔍 检测到潜在风险操作，请确认",
             footer=f"⏰ {ts} · 子 agent 监控推送"
         )
         return
@@ -196,7 +201,7 @@ def notify_event(task_name: str, progress: float, step: str, status: str,
         send_card(
             AlertLevel.HIGH,
             title=f"🚨  {task_name}",
-            body=f"**⚠️ 高危操作进行中**\n\n{bar} **{progress:.0f}%**\n📍 **{step}**\n\n🚨 请确认操作，坤哥可通过审批放行",
+            body=f"**⚠️ 高危操作进行中**{eta_str}{how_str}\n\n{bar} **{progress:.0f}%**{steps_str}\n📍 **{step}**\n\n🚨 请确认操作，坤哥可通过审批放行",
             footer=f"⏰ {ts} · 需要坤哥关注"
         )
         return
@@ -206,13 +211,13 @@ def notify_event(task_name: str, progress: float, step: str, status: str,
         send_card(
             AlertLevel.CRITICAL,
             title=f"🔴  {task_name}",
-            body=f"**🚨 核心文件操作**\n\n⚠️ 检测到极高危任务：{task_name}\n\n{bar} **{progress:.0f}%**\n📍 **{step}**\n\n🔒 系统已暂停，等待坤哥紧急审批",
+            body=f"**🚨 核心文件操作**{eta_str}{how_str}\n\n⚠️ 检测到极高危任务：{task_name}\n\n{bar} **{progress:.0f}%**{steps_str}\n📍 **{step}**\n\n🔒 系统已暂停，等待坤哥紧急审批",
             footer=f"🚨 {ts} · 反黑箱 CRITICAL 级 · 强制通知"
         )
         return
 
 
-def notify_started(task_name: str, total_steps: int, level: int):
+def notify_started(task_name: str, total_steps: int, level: int, how: str = "", eta_seconds: int = 0):
     """任务启动通知"""
     if level <= AlertLevel.LOW:
         print(f"[Monitor] 🚀 任务启动: {task_name} ({total_steps}步)")
@@ -225,15 +230,19 @@ def notify_started(task_name: str, total_steps: int, level: int):
     }
 
     title, template = level_map.get(level, ("📊 任务已启动", "blue"))
+    eta_str = f"\n\n⏱️  预计 {eta_seconds}秒 后完成" if eta_seconds > 0 else ""
+    how_str = f"\n\n🔧 做法：{how}" if how else ""
+    steps_str = f"\n📋 共 {total_steps} 个步骤" if total_steps > 0 else ""
+
     send_card(
         level,
         title=f"{title} {task_name}",
-        body=f"**{task_name}**\n\n📋 共 {total_steps} 个步骤\n\n🔄 子 agent 监控中...\n\n⚠️ 操作有风险时请确认",
+        body=f"**{task_name}**{how_str}{steps_str}{eta_str}\n\n🔄 子 agent 监控中...\n\n⚠️ 操作有风险时请确认",
         footer=f"⏰ {datetime.now().strftime('%H:%M:%S')} · 子 agent 启动推送"
     )
 
 
-def notify_completion(task_name: str, final_step: str, level: int):
+def notify_completion(task_name: str, final_step: str, level: int, how: str = "", eta_seconds: int = 0):
     """任务完成通知"""
     if level <= AlertLevel.LOW:
         print(f"[Monitor] ✅ 完成: {task_name}")
@@ -246,15 +255,16 @@ def notify_completion(task_name: str, final_step: str, level: int):
     }
     title, template = level_map.get(level, ("✅ 任务已完成", "green"))
 
+    how_str = f"\n\n🔧 做法：{how}" if how else ""
     send_card(
         level,
         title=f"{title} {task_name}",
-        body=f"**✅ 任务已完成**\n\n**{task_name}**\n\n📍 最终状态: **{final_step}**\n🎉 所有步骤执行完毕",
+        body=f"**✅ 任务已完成**{how_str}\n\n**{task_name}**\n\n📍 最终状态: **{final_step}**\n🎉 所有步骤执行完毕",
         footer=f"⏰ {datetime.now().strftime('%H:%M:%S')} · 子 agent 完成推送"
     )
 
 
-def notify_error(task_name: str, step: str, error_msg: str, level: int):
+def notify_error(task_name: str, step: str, error_msg: str, level: int, how: str = "", eta_seconds: int = 0):
     """任务异常通知"""
     level_map = {
         AlertLevel.MEDIUM: ("⚠️ 任务异常", "yellow"),
@@ -263,10 +273,11 @@ def notify_error(task_name: str, step: str, error_msg: str, level: int):
     }
     title, template = level_map.get(level, ("⚠️ 任务异常", "yellow"))
 
+    how_str = f"\n\n🔧 做法：{how}" if how else ""
     send_card(
-        max(level, AlertLevel.HIGH),  # 错误至少 HIGH
+        max(level, AlertLevel.HIGH),
         title=f"{title} {task_name}",
-        body=f"**❌ 任务异常中断**\n\n**{task_name}**\n\n📍 异常步骤: **{step}**\n\n⚠️ **{error_msg}**\n\n🔍 请检查任务状态",
+        body=f"**❌ 任务异常中断**{how_str}\n\n**{task_name}**\n\n📍 异常步骤: **{step}**\n\n⚠️ **{error_msg}**\n\n🔍 请检查任务状态",
         footer=f"🚨 {datetime.now().strftime('%H:%M:%S')} · 子 agent 异常告警"
     )
 
@@ -342,6 +353,10 @@ def load_current_progress() -> Optional[Dict]:
                 "step": latest_data.get("step", latest_data.get("currentStep", "")),
                 "error": latest_data.get("error"),
                 "jobId": latest_data.get("jobId"),
+                "how": latest_data.get("how", ""),       # 怎么做
+                "eta_seconds": latest_data.get("eta_seconds", 0),  # ETA
+                "steps": latest_data.get("steps", []),   # 步骤历史
+                "totalSteps": latest_data.get("totalSteps", 0),   # 总步骤数
             }
 
 
@@ -356,6 +371,10 @@ def load_current_progress() -> Optional[Dict]:
                 "step": data.get("step", data.get("currentStep", "")),
                 "error": data.get("error"),
                 "jobId": data.get("jobId"),
+                "how": data.get("how", ""),
+                "eta_seconds": data.get("eta_seconds", 0),
+                "steps": data.get("steps", []),
+                "totalSteps": data.get("totalSteps", 0),
             }
         except Exception:
             pass
@@ -382,14 +401,16 @@ def main():
             status = progress_data.get("status", "running")
             step = progress_data.get("step", "初始化")
             error = progress_data.get("error")
+            how = progress_data.get("how", "") or ""
+            eta_seconds = progress_data.get("eta_seconds", 0)
+            total_steps = progress_data.get("totalSteps", 0)
 
             # 动态计算风险等级
             level = classify_task_event(task_name, progress, step, status, error)
 
             # 启动通知
             if not state["notified_start"]:
-                total_steps = len(progress_data.get("steps", progress_data.get("totalSteps", [1])))
-                notify_started(task_name, total_steps, level)
+                notify_started(task_name, total_steps, level, how, eta_seconds)
                 state["notified_start"] = True
                 state["last_level"] = level
                 state["last_jobId"] = progress_data.get("jobId")
@@ -402,7 +423,7 @@ def main():
                 state["last_status"] != status
             )
             if changed and progress > 0:
-                notify_event(task_name, progress, step, status, "progress", error)
+                notify_event(task_name, progress, step, status, "progress", error, how, eta_seconds)
                 state["last_progress"] = progress
                 state["last_step"] = step
                 state["last_status"] = status
@@ -413,7 +434,7 @@ def main():
             job_id = progress_data.get("jobId")
             last_job_id = state.get("last_jobId")
             if status == "done" and not state["notified_done"] and (job_id == last_job_id or not last_job_id):
-                notify_completion(task_name, step, state.get("last_level", level))
+                notify_completion(task_name, step, state.get("last_level", level), how, eta_seconds)
                 state["notified_done"] = True
                 save_state(state)
                 print(f"[Monitor] ✅ 任务完成通知已推送，退出")
@@ -430,7 +451,7 @@ def main():
 
             # 错误通知
             if error and not state["notified_error"]:
-                notify_error(task_name, step, str(error), level)
+                notify_error(task_name, step, str(error), level, how, eta_seconds)
                 state["notified_error"] = True
                 save_state(state)
                 break

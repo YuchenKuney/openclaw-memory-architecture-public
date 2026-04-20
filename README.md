@@ -5,13 +5,13 @@
 > ⚠️ **免责声明**：本项目由个人开发，食用前请先备份重要数据，以免数据丢失！
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Version: v9.0](https://img.shields.io/badge/Version-v9.0-blue.svg)]
+[![Version: v10.0](https://img.shields.io/badge/Version-v10.0-blue.svg)]
 
 ## 🌟 简介
 
 OpenClaw 记忆架构是一套用于 AI Agent 的**持久化记忆系统**，支持多层记忆管理、多智能体协作和实时进度追踪。
 
-**v9 版本核心**：反黑箱安全审计 + 给AI装一双眼睛（Web4.0 AI Agent 沙箱无头浏览器）
+**v10 版本核心**：反黑箱通知铁律落地 + 看门狗自动拉起子 agent + progress_tracker ETA 实时追踪
 
 ## 🏗️ 整体架构
 
@@ -228,6 +228,7 @@ route: feishu:direct:ou_xxx
 | **v7** | **主动进度反馈 + 任务状态结构化** |
 | **v8** | **反黑箱安全审计（AI行为全透明 + inotify监控 + 风险分级 + 人工审核）** |
 | **v9** | **给AI装一双眼睛：Web4.0 AI Agent 沙箱无头浏览器 + Cooking 注入引擎** |
+| **v10** | **反黑箱通知铁律落地：子 agent 实时推送「做了什么+怎么做+预计多久」+ 看门狗自动拉起** |
 
 ## 🛡️ 反黑箱安全审计（V8 核心）
 

@@ -390,6 +390,82 @@ def show_project_info():
         cprint(f"      → {level}", color)
 
 
+# ============ 场景 Demo ============
+
+def run_scenario_demo():
+    """运行电商记忆演进 Demo 场景"""
+    header("🚀 Demo Scenario: E-commerce Memory Evolution")
+    print()
+    print("📖 Demo 目标：展示 AI 在电商场景中「逐步变聪明 + 更稳定」")
+    print("   场景：东南亚跨境电商选品咨询，AI 记住用户历史、给出一致推荐")
+    print()
+
+    try:
+        from demo.scenarios.ecommerce import SCENARIO
+        from demo.engine.runner import DemoRunner
+    except ImportError as e:
+        error(f"Demo 模块导入失败: {e}")
+        cprint("  请确保 demo/scenarios/ 和 demo/engine/ 目录存在", BLUE)
+        return
+
+    # 初始化 runner（串起 Memory / Audit / Profile）
+    try:
+        from clawkeeper.auditor import SecurityAuditor
+        audit = SecurityAuditor()
+    except:
+        audit = None
+
+    try:
+        from knowledge_graph import KnowledgeGraph
+        distill = KnowledgeGraph()
+        try:
+            distill.load()
+        except:
+            pass
+    except:
+        distill = None
+
+    try:
+        from clawkeeper.user_profile import UserProfile
+        profile = UserProfile()
+        profile.load()
+    except:
+        profile = None
+
+    runner = DemoRunner(audit=audit, distill=distill, profile=profile)
+
+    print("=" * 60)
+    print("🧠 OpenClaw 记忆系统 · 电商场景演示")
+    print("=" * 60)
+    print()
+
+    # 运行场景
+    for step_data in SCENARIO:
+        print(f"\n====== Step {step_data['step']} ======")
+        print(f"🎯 标签: {step_data['tag']}")
+        runner.run_step(step_data)
+
+    # 一致性检验（核心亮点）
+    print()
+    print("=" * 60)
+    print("🏁 Demo 完成，开始一致性检验")
+    print("=" * 60)
+    result, reason = runner.consistency_check()
+
+    # 保存结果
+    runner.save_log()
+
+    print()
+    header("Demo 总结")
+    cprint(f"  ✅ Memory 写入：{len(runner.memory_log)} 轮对话")
+    cprint(f"  ✅ Audit 审计：已完成")
+    cprint(f"  ✅ Profile 更新：已生效")
+    cprint(f"  🔍 一致性检验：{result}")
+    print()
+    cprint("  真实技术栈：KnowledgeGraph + ContextBuilder + Clawkeeper + UserProfile", BLUE)
+    cprint("  完整记录：demo/outputs/demo_log.md", BLUE)
+
+
 # ============ 主函数 ============
 
 def main():
@@ -407,6 +483,7 @@ def main():
     )
     parser.add_argument("--check", action="store_true", help="只检查依赖和配置")
     parser.add_argument("--populate", action="store_true", help="只填充知识图谱")
+    parser.add_argument("--scenario", action="store_true", help="运行电商记忆演进 Demo 场景")
     parser.add_argument("--webhook", metavar="URL", help="飞书 webhook URL")
     parser.add_argument("--group", metavar="ID", help="飞书群 ID")
     parser.add_argument("--info", action="store_true", help="显示项目信息")
@@ -441,6 +518,11 @@ def main():
     # --populate
     if args.populate:
         populate_knowledge_graph()
+        return
+
+    # --scenario 电商记忆演进 Demo
+    if args.scenario:
+        run_scenario_demo()
         return
 
     # 完整启动流程

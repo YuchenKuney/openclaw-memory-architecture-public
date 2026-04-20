@@ -388,6 +388,9 @@ cd openclaw-memory-architecture
 
 # 4. 运行 Demo
 python3 demo.py
+# 运行电商记忆演进场景 Demo（展示 AI 逐步变聪明）
+python3 demo.py --scenario
+
 ```
 
 > 首次运行 demo.py 时会提示设置飞书机器人（可选），具体配置见下方。

@@ -7,6 +7,7 @@
 > **Web4.0 AI Agent 沙箱无头浏览器安全声明**：Web4.0 模块铁律已写死在 `web4_cookie_injector.py` 代码里。禁止私自改装用于登录账号、越权访问、非授权爬取等违规行为。严禁爬取 PayPal、银行、邮箱、政府等私密页面。违规改装导致的一切法律后果由使用者自行承担，与项目开发者无关。
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Contributors](https://img.shields.io/badge/Contributors-Welcome-green.svg)](CONTRIBUTORS.md)
 [![Version: v10.0](https://img.shields.io/badge/Version-v10.0-blue.svg)]
 
 ## 🌟 简介
@@ -500,9 +501,13 @@ USER.md      → ~1,375 字符
 ✅ waiting_for_input / waiting_for_tool / waiting_for_subtask
 ```
 
-## 🤝 贡献
+## 🤝 贡献与支持者
 
-欢迎提交 Issue 和 Pull Request！
+欢迎提交 **Issue** 和 **Pull Request**！
+
+如果您觉得项目有帮助，提交有效 Issue 被采纳后，可以加入 [CONTRIBUTORS.md](CONTRIBUTORS.md) 支持者名单。
+
+**支持者荣誉**：GitHub 主页置顶展示，公平公开，无任何功能解锁或特权。
 
 ## 📄 许可证
 

@@ -285,6 +285,37 @@ class Interceptor:
         except Exception:
             pass
 
+    def wait_for_approval(self, action_id: str, timeout: int = 300) -> bool:
+        """
+        AI 执行危险操作前调用此方法阻塞等待坤哥审批
+        一直阻塞直到：坤哥点「允许」（返回 True）
+                    坤哥点「拒绝」（返回 False）
+                    超时（默认300秒）（返回 False）
+
+        用法：
+            ia = interceptor.intercept(action)
+            if ia.pending_approval:
+                if not interceptor.wait_for_approval(ia.details['action_id']):
+                    print('❌ 坤哥拒绝，操作阻断')
+                    return
+            # 继续执行危险操作...
+        """
+        deadline = time.time() + timeout
+        print(f'[Interceptor] ⏳ 等待审批: {action_id} (最多 {timeout} 秒)')
+
+        while time.time() < deadline:
+            status = self.pending_registry.get_status(action_id)
+            if status == 'approved':
+                print(f'[Interceptor] ✅ 审批通过: {action_id}')
+                return True
+            elif status == 'rejected':
+                print(f'[Interceptor] ❌ 审批拒绝: {action_id}，操作阻断')
+                return False
+            time.sleep(2)
+
+        print(f'[Interceptor] ⏰ 审批超时: {action_id}（{timeout}秒），默认拒绝')
+        return False
+
     def get_pending(self) -> List[dict]:
         return list(self.pending_actions.values())
 

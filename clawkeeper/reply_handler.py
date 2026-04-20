@@ -98,39 +98,6 @@ class ReplyServer:
 
                         print(f"[ReplyServer] 📩 卡片回调: op={operator_name} action={action_t} id={approval_id} level={risk_level}")
 
-                        # Update card to show result (feedback to user)
-                        try:
-                            # Get the message_id from context or stored mapping
-                            msg_id = context.get("open_message_id", "")
-                            chat_id = context.get("open_chat_id", "")
-                            if msg_id and chat_id:
-                                from clawkeeper.feishu_api import get_tenant_access_token
-                                token = get_tenant_access_token()
-                                update_url = f"https://open.feishu.cn/open-apis/im/v1/messages/{msg_id}"
-                                
-                                update_card = {
-                                    "msg_type": "interactive",
-                                    "content": json.dumps({
-                                        "elements": [
-                                            {"tag": "markdown", "content": f"**审批结果**: {status_text}"},
-                                            {"tag": "markdown", "content": f"**操作人**: {operator_name}"},
-                                            {"tag": "markdown", "content": f"**审批时间**: {datetime.now().strftime('%H:%M:%S')}"},
-                                            {"tag": "hr"},
-                                            {"tag": "markdown", "content": "✅ 此操作已被处理"}
-                                        ]
-                                    }, ensure_ascii=False)
-                                }
-                                update_data = json.dumps(update_card).encode()
-                                upd_req = urllib.request.Request(update_url, data=update_data, headers={
-                                    "Authorization": f"Bearer {token}",
-                                    "Content-Type": "application/json"
-                                })
-                                with urllib.request.urlopen(upd_req, timeout=5) as upd_resp:
-                                    upd_result = json.loads(upd_resp.read())
-                                    print(f"[ReplyServer] 卡片更新: {upd_result.get('code')}")
-                        except Exception as e:
-                            print(f"[ReplyServer] 卡片更新失败: {e}")
-
                         if approval_id:
                             if action_t.upper() == "ALLOW":
                                 handle_reply("approve", approval_id, _g_registry)

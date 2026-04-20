@@ -3,6 +3,8 @@
 > 坤哥的 Memory System——记忆主权架构
 
 > ⚠️ **免责声明**：本项目由个人开发，食用前请先备份重要数据，以免数据丢失！
+>
+> **Web4.0 AI Agent 沙箱无头浏览器安全声明**：Web4.0 模块铁律已写死在 `web4_cookie_injector.py` 代码里。禁止私自改装用于登录账号、越权访问、非授权爬取等违规行为。严禁爬取 PayPal、银行、邮箱、政府等私密页面。违规改装导致的一切法律后果由使用者自行承担，与项目开发者无关。
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Version: v10.0](https://img.shields.io/badge/Version-v10.0-blue.svg)]

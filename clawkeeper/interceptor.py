@@ -189,12 +189,12 @@ class Interceptor:
             print(f"[Interceptor] ✅ [AUTO-APPROVE] 坤哥已设置自动批准，放行: {path}")
             return
 
-        # 正常流程：暂停 + 通知 + 等待审批
-        os.environ["CLAWKEEPER_PAUSED"] = "1"
+        # 通知 + 等待审批（AI 继续运行，不假死）
         self.notifier.send(action)
         self._send_approval_request(action)
-        print(f"[Interceptor] 🚨 [BLOCK] {ia.message}")
-        print(f"[Interceptor] ⏳ 等待坤哥审批: 「允许」放行 / 「拒绝」取消")
+        print(f"[Interceptor] 🚨 [BLOCK] {ia.message} (AI 继续运行，等待审批)")
+        print(f"[Interceptor] ⏳ 审批ID: {action_id} | 坤哥在飞书群回复「允许」放行 / 「拒绝」取消")
+        print(f"[Interceptor] ⏳ 或直接回复审批ID给机器人: 允许 {action_id}")
 
     # ---------- CRITICAL：终止+隔离+取证 ----------
     def _do_kill_and_isolate(self, action, ia: InterceptAction):

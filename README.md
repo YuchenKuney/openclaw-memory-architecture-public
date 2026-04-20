@@ -374,48 +374,32 @@ result = research(
 
 ## 🚀 快速开始
 
-### 前置要求
+> 简单四步，开始使用 OpenClaw
 
 ```bash
-# Python >= 3.10
-python3 --version
+# 1. 创建并激活虚拟环境
+python3 -m venv venv && source venv/bin/activate
 
-# 依赖安装
-pip install -r requirements.txt
+# 2. 克隆仓库
+git clone https://github.com/YuchenKuney/openclaw-memory-architecture-public.git
+
+# 3. 进入项目目录
+cd openclaw-memory-architecture
+
+# 4. 运行 Demo
+python3 demo.py
 ```
 
-### 运行记忆检查
+> 首次运行 demo.py 时会提示设置飞书机器人（可选），具体配置见下方。
+
+### 飞书机器人配置（可选）
 
 ```bash
-# 检查记忆容量
-python3 scripts/memory_check.py
-
-# 执行记忆整理
-python3 scripts/memory_scheduler.py
-
-# 运行进度检查（方案A）
-bash scripts/task_progress_check.sh
-```
-
-### 配置环境变量（主动推送 + 调研）
-
-```bash
-# 飞书 Webhook（必填）
 export FEISHU_WEBHOOK="https://open.feishu.cn/open-apis/bot/v2/hook/YOUR_WEBHOOK"
-
-# SerpAPI Key（调研脚本需要，免费注册：https://serpapi.com/）
-export SERPAPI_KEY="your_api_key_here"
+export FEISHU_GROUP_ID="oc_xxxxxxxx"
 ```
 
-### 运行电商调研（方案B主动推送）
-
-```bash
-# TikTok Shop 欧美爆款调研（自动推送进度 + 摘要）
-SERPAPI_KEY=$SERPAPI_KEY bash scripts/serpapi_search.sh
-
-# 带进度的 Google Drive 同步
-RCLONE_REMOTE=yuchen RCLONE_DEST="备份/workspace" bash scripts/rclone_sync_progress.sh
-```
+> 不配置也可以正常运行 Demo，只是不会收到飞书通知。
 
 ## 📁 目录结构
 

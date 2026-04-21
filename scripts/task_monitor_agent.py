@@ -17,7 +17,7 @@ from pathlib import Path
 STATE_FILE = Path("/root/.openclaw/workspace/.task_state.json")
 WEBHOOK = "https://open.feishu.cn/open-apis/bot/v2/hook/7a939580-e987-4571-a142-f58528cf71ec"
 CHECK_INTERVAL = 120  # 每2分钟检查一次
-MAX_RUNTIME = 7200   # 最多运行2小时自动退出
+MAX_RUNTIME = 86400  # 24小时
 
 
 def read_state():

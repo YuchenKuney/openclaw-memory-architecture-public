@@ -306,9 +306,15 @@ def watchdog_loop(daemon: bool = False, once: bool = False):
                 if not alive:
                     state["restart_count"] = state.get("restart_count", 0) + 1
                     state["last_restart"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-                    print(f"[Watchdog] ⚠️ {name} 进程已停止，尝试重启 #{state['restart_count']}")
-                    msg = f"⚠️ {name} 进程已停止\n\n挂了第 {state['restart_count']} 次\n\n🔄 自动拉起中..."
-                    send_simple_msg(msg, "WARN")
+                    restart_count = state["restart_count"]
+                    print(f"[Watchdog] ⚠️ {name} 进程已停止，尝试重启 #{restart_count}")
+                    # 只在重启次数过多时告警（避免刷屏）
+                    if restart_count >= 5:
+                        msg = f"⚠️ {name} 进程挂了 {restart_count} 次（频繁重启）\n🔄 自动拉起中..."
+                        send_simple_msg(msg, "WARN")
+                    else:
+                        # 重启次数少，不打扰坤哥，静默拉起
+                        print(f"[Watchdog] ⚠️ 重启次数少（{restart_count}次），静默拉起")
                     new_pids = start_all_monitors()
                     current_pids.update(new_pids)
             update_heartbeat(state, alive)

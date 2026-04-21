@@ -27,7 +27,11 @@ from datetime import datetime
 from typing import Optional, Dict, List
 
 WORKSPACE = Path("/root/.openclaw/workspace")
-MONITOR_SCRIPT = WORKSPACE / "task_monitor.py"
+# 要监控的脚本列表（看门狗都会自动拉起）
+MONITOR_SCRIPTS = {
+    "task_monitor": WORKSPACE / "task_monitor.py",
+    "task_agent": WORKSPACE / "scripts" / "task_monitor_agent.py",
+}
 STATE_FILE = WORKSPACE / ".watchdog_state.json"
 HEARTBEAT_FILE = WORKSPACE / ".watchdog_heartbeat.json"
 FEISHU_WEBHOOK = os.environ.get(
@@ -135,34 +139,54 @@ def is_process_alive(pid: int) -> bool:
         return False
 
 
-def get_monitor_pid() -> Optional[int]:
-    """获取 task_monitor.py 的 PID"""
-    try:
-        result = subprocess.run(
-            ["pgrep", "-f", "task_monitor.py"],
-            capture_output=True, text=True
-        )
-        if result.returncode == 0 and result.stdout.strip():
-            return int(result.stdout.strip().split()[0])
-    except Exception:
-        pass
-    return None
+def get_monitor_pids() -> dict:
+    """获取所有被监控脚本的 PID，返回 {脚本名: pid}"""
+    pids = {}
+    for name, script_path in MONITOR_SCRIPTS.items():
+        try:
+            result = subprocess.run(
+                ["pgrep", "-f", script_path.name],
+                capture_output=True, text=True
+            )
+            if result.returncode == 0 and result.stdout.strip():
+                pid_str = result.stdout.strip().split()[0]
+                pids[name] = int(pid_str)
+        except Exception:
+            pass
+    return pids
 
 
-def start_monitor_process() -> Optional[int]:
-    """启动 task_monitor.py，返回 PID"""
-    try:
-        proc = subprocess.Popen(
-            [sys.executable, str(MONITOR_SCRIPT)],
-            cwd=str(WORKSPACE),
-            stdin=subprocess.DEVNULL,
-            stdout=subprocess.DEVNULL,
-            stderr=subprocess.DEVNULL
-        )
-        return proc.pid
-    except Exception as e:
-        print(f"[Watchdog] 启动失败: {e}")
-        return None
+def start_all_monitors() -> dict:
+    """启动所有被监控脚本，返回 {脚本名: pid}"""
+    started = {}
+    for name, script_path in MONITOR_SCRIPTS.items():
+        try:
+            # 检查是否已经在运行
+            existing = subprocess.run(
+                ["pgrep", "-f", script_path.name],
+                capture_output=True, text=True
+            )
+            if existing.returncode == 0 and existing.stdout.strip():
+                # 已经在运行
+                pid = int(existing.stdout.strip().split()[0])
+                started[name] = pid
+                print(f"[Watchdog] {name} 已在运行 PID={pid}")
+                continue
+
+            # 启动新进程
+            proc = subprocess.Popen(
+                [sys.executable, str(script_path)],
+                cwd=str(WORKSPACE),
+                stdin=subprocess.DEVNULL,
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+                start_new_session=True
+            )
+            started[name] = proc.pid
+            print(f"[Watchdog] ✅ {name} 已启动 PID={proc.pid}")
+        except Exception as e:
+            print(f"[Watchdog] ❌ {name} 启动失败: {e}")
+    return started
 
 
 def stop_monitor_process(pid: int):
@@ -186,7 +210,7 @@ def load_state() -> Dict:
             return json.loads(Path(STATE_FILE).read_text())
         except Exception:
             pass
-    return {"monitor_pid": None, "last_restart": None, "restart_count": 0, "last_heartbeat": None}
+    return {"monitor_pids": {}, "last_restart": None, "restart_count": 0, "last_heartbeat": None, "monitored": list(MONITOR_SCRIPTS.keys())}
 
 
 def save_state(state: Dict):
@@ -206,7 +230,8 @@ def update_heartbeat(state: Dict, monitor_alive: bool):
     try:
         Path(HEARTBEAT_FILE).write_text(json.dumps({
             "alive": monitor_alive,
-            "pid": state.get("monitor_pid"),
+            "monitored": list(MONITOR_SCRIPTS.keys()),
+            "pids": state.get("monitor_pids", {}),
             "updated": now,
             "restarts": state.get("restart_count", 0),
         }, indent=2))
@@ -221,12 +246,17 @@ def send_heartbeat(state: Dict):
     level_names = ["SAFE", "LOW", "MEDIUM", "HIGH", "CRITICAL"]
     level_name = level_names[level] if level < len(level_names) else "UNKNOWN"
     now = datetime.now().strftime("%H:%M:%S")
-    pid = state.get("monitor_pid")
+    pids = state.get("monitor_pids", {})
     restarts = state.get("restart_count", 0)
-    alive = state.get("monitor_alive", False)
-    status = "🟢 存活" if alive else "🔴 已停止"
+    # 显示所有监控进程状态
+    proc_status = []
+    for name, pid in pids.items():
+        alive = is_process_alive(pid) if pid else False
+        s = f"{name}={'🟢' if alive else '🔴'}(PID={pid})"
+        proc_status.append(s)
+    proc_info = " | ".join(proc_status) if proc_status else "无"
     send_simple_msg(
-        f"🐕 看门狗心跳 {now} | 监控进程: {status} | PID: {pid} | 重启: {restarts}次 | 当前:{level_name} | {step}",
+        f"🐕 看门狗心跳 {now} | 监控: {proc_info} | 重启:{restarts}次 | 当前:{level_name} | {step}",
         level_name,
     )
 
@@ -256,38 +286,31 @@ def watchdog_loop(daemon: bool = False, once: bool = False):
     print(f"[Watchdog] 🚀 看门狗启动 PID={os.getpid()} {'(daemon)' if daemon else ''}")
     send_simple_msg("🐕 看门狗已启动", "INFO")
 
+    # 启动时确保所有被监控脚本都在运行
     state = load_state()
+    initial_pids = start_all_monitors()
+    if initial_pids:
+        state["monitor_pids"] = initial_pids
+        save_state(state)
+        pids_str = " | ".join(f"{k}={v}" for k, v in initial_pids.items())
+        print(f"[Watchdog] ✅ 启动时拉起监控进程: {pids_str}")
     last_heartbeat = time.time()
     last_integrity_check = time.time()
 
     while True:
         try:
-            current_pid = state.get("monitor_pid")
-            alive = current_pid and is_process_alive(current_pid)
-
-            if not alive:
-                # 进程挂了，需要重启
-                state["restart_count"] = state.get("restart_count", 0) + 1
-                state["last_restart"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-                print(f"[Watchdog] ⚠️ 监控进程已停止（PID={current_pid}），尝试重启 #{state['restart_count']}")
-
-                send_watchdog_card(
-                    "🐕 看门狗重启监控进程",
-                    f"⚠️ task_monitor 进程已停止\n\n挂了第 {state['restart_count']} 次\n\n🔄 自动拉起中...",
-                    alert_level=2,
-                )
-
-
-                new_pid = start_monitor_process()
-                if new_pid:
-                    state["monitor_pid"] = new_pid
-                    print(f"[Watchdog] ✅ 监控进程已重启，新 PID={new_pid}")
-                    send_simple_msg(f"✅ 监控进程已拉起 PID={new_pid}", "SUCCESS")
-                else:
-                    print(f"[Watchdog] ❌ 重启失败")
-                    send_simple_msg("❌ 监控进程重启失败，10秒后重试", "ERROR")
-
-            # 更新心跳
+            current_pids = get_monitor_pids()
+            for name, script_path in MONITOR_SCRIPTS.items():
+                pid = current_pids.get(name)
+                alive = pid and is_process_alive(pid)
+                if not alive:
+                    state["restart_count"] = state.get("restart_count", 0) + 1
+                    state["last_restart"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                    print(f"[Watchdog] ⚠️ {name} 进程已停止，尝试重启 #{state['restart_count']}")
+                    msg = f"⚠️ {name} 进程已停止\n\n挂了第 {state['restart_count']} 次\n\n🔄 自动拉起中..."
+                    send_simple_msg(msg, "WARN")
+                    new_pids = start_all_monitors()
+                    current_pids.update(new_pids)
             update_heartbeat(state, alive)
 
             # 每 30 秒更新一次心跳文件（不通知）
@@ -324,8 +347,8 @@ def watchdog_loop(daemon: bool = False, once: bool = False):
 
     # 清理（daemon 不清理）
     if not daemon:
-        if state.get("monitor_pid"):
-            stop_monitor_process(state["monitor_pid"])
+        for pid in state.get("monitor_pids", {}).values():
+            stop_monitor_process(pid)
 
 
 def main():

@@ -132,14 +132,33 @@ class Web4Browser:
             self._browser = self._pw.chromium.launch(
                 headless=self.headless,
                 args=[
+                    # 沙箱模式（Linux 上需要适当沙箱）
                     "--no-sandbox",
                     "--disable-setuid-sandbox",
                     "--disable-dev-shm-usage",
+                    # GPU 伪装
                     "--disable-gpu",
+                    "--use-gl=swiftshader",
+                    # WebSecurity（同源策略，保留）
                     "--disable-web-security",
-                    "--disable-features=IsolateOrigins,site-per-process",
                     "--allow-running-insecure-content",
-                    "--ignore-certificate-errors",
+                    # 禁用自动化特征检测
+                    "--disable-blink-features=AutomationControlled",
+                    "--exclude-switches=enable-automation",
+                    "--disable-infobars",
+                    # 禁用提示条
+                    "--disable-prompt-on-repost",
+                    # 禁用automation扩展
+                    "--disable-extensions",
+                    "--disable-background-networking",
+                    "--disable-default-apps",
+                    "--disable-hang-monitor",
+                    "--disable-popup-blocking",
+                    "--disable-sync",
+                    "--disable-translate",
+                    "--metrics-recording-only",
+                    "--no-first-run",
+                    "--safebrowsing-disable-auto-update",
                 ]
             )
 
@@ -167,26 +186,239 @@ class Web4Browser:
             return False
 
     def _inject_stealth_js(self):
-        stealth_script = """
-        Object.defineProperty(navigator, 'webdriver', {
-            get: () => undefined, configurable: true
-        });
-        window.chrome = { runtime: {}, app: {}, loadTimes: function() {}, csi: function() {} };
-        const _query = window.navigator.permissions.query;
-        window.navigator.permissions.query = (parameters) =>
-            parameters.name === 'notifications' ?
-            Promise.resolve({ state: Notification.permission }) : _query(parameters);
-        Object.defineProperty(navigator, 'plugins', {
-            get: () => [1, 2, 3, 4, 5], configurable: true
-        });
-        Object.defineProperty(navigator, 'languages', {
-            get: () => ['zh-CN', 'zh', 'en-US', 'en'], configurable: true
-        });
         """
+        加强版反检测 stealth 注入
+        覆盖：Bing/Google 主要反爬虫检测点
+        """
+        stealth_script = """
+        // ============================================================
+        // 1. 移除自动化指纹（最关键）
+        // ============================================================
+        Object.defineProperty(navigator, 'webdriver', {
+            get: () => undefined, configurable: true, enumerable: true
+        });
+
+        // 移除 window.__webdriver / window.__selenium / window.driver
+        Object.defineProperties(window, {
+            '__webdriver_evaluate': { get: () => undefined },
+            '__selenium_evaluate': { get: () => undefined },
+            '__webdriver_script_function': { get: () => undefined },
+            '__webdriver_script_func': { get: () => undefined },
+            '__webdriver_script_nonce': { get: () => undefined },
+            '__driver_evaluate': { get: () => undefined },
+            '__fxdriver_evaluate': { get: () => undefined },
+            '__driver_undefined': { get: () => undefined },
+            __fxdriver__: { get: () => undefined },
+            _phantom: { get: () => undefined },
+            phantom: { get: () => undefined },
+            '_phantomInvoke': { get: () => undefined },
+            'callPhantom': { get: () => undefined },
+            'spawn': { get: () => undefined },
+            'spawnKeys': { get: () => undefined },
+        });
+
+        // ============================================================
+        // 2. Chrome 运行时伪装（绕过 chrome.* 检测）
+        // ============================================================
+        window.chrome = (function() {
+            const _chrome = {
+                runtime: {},
+                app: {},
+                loadTimes: function() {},
+                csi: function() {},
+                appInstallLocation: '',
+                appInstallCategory: 'enterprise',
+                appName: 'Google Chrome',
+                appVersion: '120.0.0.0',
+                vendor: 'Google Inc.',
+                vr: { present: false },
+            };
+            // chrome.runtime.connect 等需要返回可用对象
+            _chrome.runtime.connect = function() { return { postMessage: function(){}, onMessage: { addListener: function(){} } }; };
+            _chrome.runtime.onConnect = { addListener: function(){} };
+            _chrome.runtime.onMessage = { addListener: function(){} };
+            _chrome.runtime.sendMessage = function() {};
+            _chrome.runtime.id = 'ext_id_placeholder';
+            return _chrome;
+        })();
+
+        // ============================================================
+        // 3. Permissions API 伪装（让 iframes 能获取 permission）
+        // ============================================================
+        const _orig_permissions_query = window.navigator.permissions.query;
+        window.navigator.permissions.query = (parameters) => {
+            // 允许更多 permission 而不只是 notifications
+            const allowed = ['notifications', 'geolocation', 'camera', 'microphone',
+                             'persistent-storage', 'top-level-storage-access'];
+            if (allowed.includes(parameters.name)) {
+                return Promise.resolve({ state: 'prompt', onchange: null });
+            }
+            if (_orig_permissions_query) {
+                return _orig_permissions_query(parameters);
+            }
+            return Promise.resolve({ state: 'denied', onchange: null });
+        };
+
+        // ============================================================
+        // 4. Plugins 伪装（真实 Chrome 有 3-5 个插件）
+        // ============================================================
+        const _plugins = [
+            { name: 'Chrome PDF Plugin', description: 'Portable Document Format', filename: 'internal-pdf-viewer', version: '1.0' },
+            { name: 'Chrome PDF Viewer', description: '', filename: 'mhjfbmdgcfjbbpaeojofohoefgiehjai', version: '' },
+            { name: 'Native Client', description: '', filename: 'internal-nacl-plugin', version: '1.0' },
+        ];
+        Object.defineProperty(navigator, 'plugins', {
+            get: () => _plugins, configurable: true, enumerable: true
+        });
+        Object.defineProperty(navigator, 'mimeTypes', {
+            get: () => [
+                { type: 'application/pdf', suffixes: 'pdf', description: 'Portable Document Format', enabledPlugin: _plugins[0] },
+                { type: 'application/x-nacl', suffixes: '', description: 'Native Client', enabledPlugin: _plugins[2] },
+            ], configurable: true, enumerable: true
+        });
+
+        // ============================================================
+        // 5. Languages 伪装（真实 Windows Chrome 通常这样设置）
+        // ============================================================
+        Object.defineProperty(navigator, 'languages', {
+            get: () => ['zh-CN', 'zh', 'en-US', 'en', 'en-GB'], configurable: true, enumerable: true
+        });
+        Object.defineProperty(navigator, 'language', {
+            get: () => 'zh-CN', configurable: true, enumerable: true
+        });
+        Object.defineProperty(navigator, 'locale', {
+            get: () => 'zh-CN', configurable: true, enumerable: true
+        });
+
+        // ============================================================
+        // 6. Hardware Concurrency（真实 CPU 核心数）
+        // ============================================================
+        Object.defineProperty(navigator, 'hardwareConcurrency', {
+            get: () => 8, configurable: true, enumerable: true
+        });
+
+        // ============================================================
+        // 7. Device Memory（真实设备内存 GB）
+        // ============================================================
+        Object.defineProperty(navigator, 'deviceMemory', {
+            get: () => 8, configurable: true, enumerable: true
+        });
+
+        // ============================================================
+        // 8. Touch / Max Touch Points（桌面浏览器应为 0）
+        // ============================================================
+        Object.defineProperty(navigator, 'maxTouchPoints', {
+            get: () => 0, configurable: true, enumerable: true
+        });
+        Object.defineProperty(navigator, 'touchSupported', {
+            get: () => false, configurable: true, enumerable: true
+        });
+
+        // ============================================================
+        // 9. WebGL 渲染器伪装（真实 GPU 信息）
+        // ============================================================
+        const _getParameter = HTMLCanvasElement.prototype.getContext?.getParameter;
+        if (_getParameter) {
+            const _origGetParameter = _getParameter.bind(HTMLCanvasElement.prototype.getContext('webgl') || {});
+            HTMLCanvasElement.prototype.getContext = function(type, attrs) {
+                const ctx = _origGetParameter(type, attrs);
+                if (type === 'webgl' || type === 'webgl2') {
+                    const _origGet = ctx.getParameter.bind(ctx);
+                    ctx.getParameter = function(param) {
+                        // 常见的自动化检测参数
+                        if (param === 37445) return 'Intel Inc.'; // UNMASKED_VENDOR_WEBGL
+                        if (param === 37446) return 'Intel Iris OpenGL Engine'; // UNMASKED_RENDERER_WEBGL
+                        return _origGet(param);
+                    };
+                }
+                return ctx;
+            };
+        }
+
+        // ============================================================
+        // 10. Canvas 指纹随机化（加入微噪声）
+        // ============================================================
+        const _orig_toDataURL = HTMLCanvasElement.prototype.toDataURL;
+        HTMLCanvasElement.prototype.toDataURL = function() {
+            try {
+                const ctx = this.getContext('2d') || this.getContext('webgl');
+                if (ctx && ctx.canvas) {
+                    const imgData = ctx.getImageData(0, 0, this.width, this.height);
+                    for (let i = 0; i < imgData.data.length; i += 100) {
+                        imgData.data[i] = (imgData.data[i] + Math.floor(Math.random() * 2)) % 256;
+                    }
+                    ctx.putImageData(imgData, 0, 0);
+                }
+            } catch(e) {}
+            return _orig_toDataURL.apply(this, arguments);
+        };
+
+        // ============================================================
+        // 11. 防止 automation 属性暴露
+        // ============================================================
+        Object.defineProperty(document, 'driver', { get: () => undefined });
+        Object.defineProperty(document, '__driver__', { get: () => undefined });
+
+        // ============================================================
+        // 12. 伪造连接信息（Network Information API）
+        // ============================================================
+        Object.defineProperty(navigator, 'connection', {
+            get: () => ({
+                effectiveType: '4g',
+                downlink: 10,
+                rtt: 50,
+                downlinkMax: 1000,
+                saveData: false,
+                addEventListener: function() {},
+                removeEventListener: function() {},
+                dispatchEvent: function() { return true; }
+            }), configurable: true, enumerable: true
+        });
+
+        // ============================================================
+        // 13. Battery API（如果网站检测 battery）
+        // ============================================================
+        if (!navigator.getBattery) {
+            navigator.getBattery = function() {
+                return Promise.resolve({
+                    charging: true, level: 1, chargingTime: 0, dischargingTime: Infinity,
+                    addEventListener: function() {}, removeEventListener: function() {},
+                    onchargingchange: null, onchargingtimechange: null, ondischargingtimechange: null, onlevelchange: null
+                });
+            };
+        }
+
+        // ============================================================
+        // 14. Do Not Track（设为 null 或 no')
+        // ============================================================
+        Object.defineProperty(navigator, 'doNotTrack', {
+            get: () => 'no', configurable: true, enumerable: true
+        });
+
+        // ============================================================
+        // 15. Cookie / Storage 标志
+        // ============================================================
+        Object.defineProperty(navigator, 'cookieEnabled', {
+            get: () => true, configurable: true, enumerable: true
+        });
+
+        // ============================================================
+        // 16. pdfViewerEnabled
+        // ============================================================
+        Object.defineProperty(navigator, 'pdfViewerEnabled', {
+            get: () => true, configurable: true, enumerable: true
+        });
+
+        // ============================================================
+        // 17. installTrigger（Gecko 特有，不应该有）
+        // ============================================================
+        Object.defineProperty(window, 'installTrigger', { get: () => undefined });
+        """
+
         try:
             self._context.add_init_script(stealth_script)
-        except Exception:
-            pass
+        except Exception as e:
+            print(f"[{self.id}] stealth 注入失败: {e}")
 
     def _setup_interceptors(self):
         self._requests = []

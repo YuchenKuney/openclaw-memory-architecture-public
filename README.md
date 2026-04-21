@@ -8,7 +8,7 @@
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Contributors](https://img.shields.io/badge/Contributors-Welcome-green.svg)](CONTRIBUTORS.md)
-[![Version: v11.7](https://img.shields.io/badge/Version-v11.6-blue.svg)]
+[![Version: v11.8](https://img.shields.io/badge/Version-v11.6-blue.svg)]
 
 ## 🌟 简介
 
@@ -19,6 +19,14 @@
 - **飞书审批联动**：危险操作被拦截 → 飞书卡片按钮 → toast 弹窗 → AI 继续执行
 - **StepReporter**：AI 每步操作主动汇报到飞书群（全链路透明化）
 - **Web4.0 stealth**：17 项反检测措施，绕过 Bing/Google 人机检测
+
+## 🔥 v11.8 今日修复
+
+**v11.8 修复内容**（2026-04-21）：
+- 重启告警优化：少于5次静默拉起，不刷屏
+- task_agent MAX_RUNTIME 2小时→24小时（修复无限重启）
+- watcher 新增任务开始时推送通知
+- 飞书进度通知链路打通（progress_tracker → watcher → Webhook）
 
 ## 🔥 v11 核心功能：飞书审批联动
 

@@ -384,7 +384,7 @@ python3 -m venv venv && source venv/bin/activate
 git clone https://github.com/YuchenKuney/openclaw-memory-architecture-public.git
 
 # 3. 进入项目目录
-cd openclaw-memory-architecture
+cd openclaw-memory-architecture-public
 
 # 4. 运行 Demo
 python3 demo.py

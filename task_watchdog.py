@@ -375,3 +375,5 @@ def main():
         os.umask(0o022)
 
     watchdog_loop(daemon=is_daemon, once=args.once)
+if __name__ == "__main__":
+    main()

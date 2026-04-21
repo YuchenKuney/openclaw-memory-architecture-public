@@ -1,142 +1,87 @@
 #!/usr/bin/env python3
 """
-Feishu Progress Notifier - 群聊实时进度通知
-用法:
-    python3 feishu_progress.py <job_name> <progress> <step> [message]
+feishu_progress.py - 飞书进度推送（反黑箱专用，不走主会话）
 
-示例:
-    python3 feishu_progress.py "记忆同步" 0 "开始执行"
-    python3 feishu_progress.py "记忆同步" 25 "读取记忆文件"
-    python3 feishu_progress.py "记忆同步" 100 "同步完成"
+用法：
+    python3 feishu_progress.py "Step 2/5: 竞争格局" "Shopee 第1，TikTok 第2" "blue"
 
-进度条 emoji:
-    0-10%:  🆕 开始
-    11-25%: █░░░░░░░░░  10%
-    26-50%: ███░░░░░░░  30%
-    51-75%: █████░░░░░  60%
-    76-99%: ███████░░░  80%
-    100%:   ██████████  100%
+颜色模板：blue=进行中, green=完成, red=警告, purple=最终报告
 """
-
 import sys
 import json
-import os
 import urllib.request
-import urllib.error
 from datetime import datetime
 
-# 飞书群聊 Webhook（环境变量优先）
-FEISHU_GROUP_WEBHOOK = os.environ.get(
-    "FEISHU_GROUP_WEBHOOK",
-    "https://open.feishu.cn/open-apis/bot/v2/hook/7a939580-e987-4571-a142-f58528cf71ec"
-)
+WEBHOOK = "https://open.feishu.cn/open-apis/bot/v2/hook/375a8be1-9e3e-4758-a78b-e775fd4d32a1"
 
-# 群 ID（仅用于记录，不影响发送）
-GROUP_ID = os.environ.get("FEISHU_GROUP_ID", "")
+TEMPLATE_COLORS = {
+    "blue": "blue",     # 进行中
+    "green": "green",   # 完成
+    "red": "red",       # 警告/错误
+    "purple": "purple", # 最终报告
+    "orange": "orange", # 等待中
+}
 
-
-def build_progress_bar(progress: int) -> str:
-    """构建可视化进度条（10格）"""
-    filled = round(progress / 10)
-    empty = 10 - filled
-    return "█" * filled + "░" * empty
-
-
-def send_feishu_card(job_name: str, progress: int, step: str, message: str = ""):
-    """
-    发送飞书进度卡片到群聊
-    """
-    now = datetime.now().strftime("%H:%M:%S")
-
-    # 进度条
-    bar = build_progress_bar(progress)
-
-    # 进度文案
-    if progress == 0:
-        status_text = "🆕 开始执行"
-        color = "blue"
-    elif progress == 100:
-        status_text = "✅ 任务完成"
-        color = "green"
+def send_progress(step_title: str, content: str, color: str = "blue", done: bool = False):
+    """发送进度卡片到飞书群"""
+    color = TEMPLATE_COLORS.get(color, "blue")
+    
+    # Emoji 前缀
+    if done:
+        emoji = "✅"
+    elif "完成" in step_title or "done" in step_title.lower():
+        emoji = "✅"
+    elif "进行" in step_title or "ing" in step_title.lower():
+        emoji = "🔄"
+    elif "警告" in step_title or "错误" in step_title:
+        emoji = "⚠️"
+    elif "汇总" in step_title or "报告" in step_title or "最终" in step_title:
+        emoji = "📊"
     else:
-        status_text = f"🔄 进行中"
-        color = "orange"
-
-    # 步骤标题
-    header_title = f"{status_text} {job_name}"
-
-    # 消息体
-    content_parts = [
-        f"**任务**: `{job_name}`",
-        f"**进度**: {bar} `{progress}%`",
-        f"**步骤**: `{step}`",
-    ]
-    if message:
-        content_parts.append(f"**详情**: {message}")
-    content_parts.append(f"`⏰ {now}`")
-
+        emoji = "🔄"
+    
     card = {
         "msg_type": "interactive",
         "card": {
+            "config": {"wide_screen_mode": True},
             "header": {
-                "title": {"tag": "plain_text", "content": header_title},
-                "template": color,
+                "title": {"tag": "plain_text", "content": f"{emoji} {step_title}"},
+                "template": color
             },
             "elements": [
-                {"tag": "markdown", "content": "\n".join(content_parts)},
+                {"tag": "markdown", "content": content},
+                {"tag": "hr"},
+                {
+                    "tag": "note",
+                    "elements": [
+                        {"tag": "plain_text", "content": f"AI 调研进度 · {datetime.now().strftime('%H:%M:%S')}"}
+                    ]
+                }
             ]
         }
     }
-
-    return card
-
-
-def send(card):
-    """发送卡片到飞书"""
-    data = json.dumps(card).encode("utf-8")
-    req = urllib.request.Request(
-        FEISHU_GROUP_WEBHOOK,
-        data=data,
-        headers={"Content-Type": "application/json"}
-    )
+    
+    payload = json.dumps(card, ensure_ascii=False).encode("utf-8")
+    req = urllib.request.Request(WEBHOOK, data=payload, headers={"Content-Type": "application/json"})
     try:
         with urllib.request.urlopen(req, timeout=10) as resp:
-            result = json.loads(resp.read().decode("utf-8"))
+            result = json.loads(resp.read().decode())
             if result.get("code") == 0 or result.get("StatusCode") == 0:
-                print(f"[Feishu] ✅ 发送成功")
-                return True
+                print(f"✅ 推送成功: {step_title}")
             else:
-                print(f"[Feishu] ❌ 发送失败: {result}")
-                return False
-    except urllib.error.URLError as e:
-        print(f"[Feishu] ❌ 网络错误: {e}")
-        return False
+                print(f"⚠️ 推送失败: {result}")
     except Exception as e:
-        print(f"[Feishu] ❌ 异常: {e}")
-        return False
-
-
-def main():
-    if len(sys.argv) < 4:
-        print(__doc__)
-        sys.exit(1)
-
-    job_name = sys.argv[1]
-    try:
-        progress = int(sys.argv[2])
-    except ValueError:
-        print("进度必须是 0-100 的整数")
-        sys.exit(1)
-    step = sys.argv[3]
-    message = sys.argv[4] if len(sys.argv) > 4 else ""
-
-    if not 0 <= progress <= 100:
-        print("进度必须在 0-100 之间")
-        sys.exit(1)
-
-    card = send_feishu_card(job_name, progress, step, message)
-    send(card)
-
+        print(f"❌ 推送异常: {e}")
 
 if __name__ == "__main__":
-    main()
+    if len(sys.argv) < 3:
+        print("用法: python3 feishu_progress.py <标题> <内容> [颜色] [done]")
+        print("例: python3 feishu_progress.py 'Step 1/5: 市场规模' 'GMV $57亿' blue")
+        sys.exit(1)
+    
+    title = sys.argv[1]
+    content = sys.argv[2]
+    color = sys.argv[3] if len(sys.argv) > 3 else "blue"
+    done = sys.argv[4].lower() == "true" if len(sys.argv) > 4 else False
+    
+    send_progress(title, content, color, done)

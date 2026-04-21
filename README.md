@@ -8,13 +8,17 @@
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Contributors](https://img.shields.io/badge/Contributors-Welcome-green.svg)](CONTRIBUTORS.md)
-[![Version: v11.6](https://img.shields.io/badge/Version-v11.6-blue.svg)]
+[![Version: v11.7](https://img.shields.io/badge/Version-v11.6-blue.svg)]
 
 ## 🌟 简介
 
 本项目是基于 OpenClaw **MIT** 开源协议的二次架构扩展。
 
-**v11 版本核心**：飞书审批联动——危险操作被拦截后，AI 发送审批卡片到飞书群，坤哥点「✅ 允许放行」按钮即可实时审批，弹窗提示结果。
+**v11.7 版本核心**：飞书审批联动 + Web4.0 加强版 stealth（Bing 搜索从 0→34,600 条真实数据）
+
+- **飞书审批联动**：危险操作被拦截 → 飞书卡片按钮 → toast 弹窗 → AI 继续执行
+- **StepReporter**：AI 每步操作主动汇报到飞书群（全链路透明化）
+- **Web4.0 stealth**：17 项反检测措施，绕过 Bing/Google 人机检测
 
 ## 🔥 v11 核心功能：飞书审批联动
 
@@ -95,6 +99,7 @@ export FEISHU_GROUP_ID="oc_xxxx"
 | `interceptor.py` | 四级分层响应 + 沙箱隔离 |
 | `reply_handler.py` | **ReplyServer：接收飞书卡片回调** |
 | `notifier.py` | 飞书卡片通知 |
+| `notifier.py` | **StepReporter：AI 每步主动汇报（全链路透明化）** |
 | `auditor.py` | 主动扫描（CVE/完整性）|
 | `knowledge_graph.py` | 实体知识图谱 |
 | `context_builder.py` | 上下文构建 |
@@ -113,10 +118,12 @@ export FEISHU_GROUP_ID="oc_xxxx"
 
 | 文件 | 作用 |
 |------|------|
-| `web4_browser.py` | Playwright 无头浏览器 + 浏览器池 |
+| `web4_browser.py` | Playwright 无头浏览器 + **17项 stealth 反检测** |
 | `web4_container.py` | Linux Namespace 沙箱容器 |
 | `web4_controller.py` | AI 研究接口 |
 | `web4_cooker.py` | Cooking 注入引擎 |
+
+**Stealth 措施**：移除 navigator.webdriver、Chrome 运行时伪装、Plugins/MimeTypes 仿真、Canvas 指纹加噪、WebGL 渲染器伪装、HardwareConcurrency 仿真等。实测 Bing 搜索从 0 结果→34,600 条真实数据。
 
 ## 🎯 Demo 审批系统详解
 
@@ -265,7 +272,8 @@ else:
 | **v8** | **反黑箱安全审计（AI行为全透明 + inotify监控 + 风险分级）** |
 | **v9** | **Web4.0 AI Agent 沙箱无头浏览器 + Cooking 注入引擎** |
 | **v10** | **反黑箱通知铁律落地 + 看门狗自动拉起子 agent** |
-| **v11** | **飞书审批联动：卡片按钮 + toast 弹窗 + wait_for_approval 阻塞** |
+| **v11.7** | **StepReporter 全链路透明化 + Web4.0 stealth 加强（Bing 搜索突破）** |
+| **v11.6** | **飞书审批联动：卡片按钮 + toast 弹窗 + wait_for_approval 阻塞** |
 
 ## 📁 目录结构
 

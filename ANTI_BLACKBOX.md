@@ -80,6 +80,8 @@ LOW 📝 (LOW = 1) / SAFE ✅ (SAFE = 0)
 
 ### 实时进度透明化
 
+#### 方式一：Cron 事件触发（已有）
+
 ```
 Cron 触发（精确到秒）
   → agentTurn 执行，写入 cron-events/{id}.json
@@ -90,6 +92,39 @@ Cron 触发（精确到秒）
   → 飞书卡片推送坤哥
   → 坤哥在飞书看到完整事件
 ```
+
+#### 方式二：StepReporter 直接汇报（v11.7 新增）
+
+> **推荐方式**：AI 每执行一步，主动调用 StepReporter 发送到飞书群
+
+```python
+from clawkeeper.notifier import StepReporter
+
+reporter = StepReporter()
+
+# 任务开始：宣布计划
+reporter.start_task("编写 Demo 脚本", total_steps=4)
+# → 坤哥在飞书群看到：🆕 任务开始 | 共4步，每步做什么
+
+# Step 1 完成
+reporter.step_done(1, "分析 demo 需求", next_step="编写 demo1 代码", eta_seconds=30)
+# → 坤哥看到：✅ Step 1/4 完成 | 下一步：编写 demo1 代码 | 预计30秒
+
+# Step 2 完成
+reporter.step_done(2, "编写 demo1_longpoll.py", next_step="编写 demo2 代码", eta_seconds=60)
+# → 坤哥看到：🔄 进行中 | ██░░░░░░░░ 50% | 下一步：...
+
+# ...
+
+# 任务完成
+reporter.task_done("Demo 1 + Demo 2 完成！README 已更新")
+# → 坤哥看到：✅ 任务完成 | 总结
+```
+
+**StepReporter 核心原则**：
+- `start_task()` 时一次性说完整个计划（让坤哥知道要做什么）
+- 每步 `step_done()` 后立刻发送（让坤哥实时追踪进度）
+- 包含进度条（███░░░░░░░ 30%）+ 预计剩余时间
 
 ---
 

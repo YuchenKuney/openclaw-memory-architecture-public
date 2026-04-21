@@ -427,6 +427,17 @@ class StepReporter:
         self._send_card(card)
         print(f"[StepReporter] 🆕 任务开始: {task_name} ({total_steps} 步)")
 
+        # 同时写入状态文件（供 Cron 任务进度汇报使用）
+        import subprocess
+        try:
+            subprocess.run([
+                "python3",
+                "/root/.openclaw/workspace/scripts/task_state_writer.py",
+                "start", task_name, str(total_steps)
+            ], timeout=5, capture_output=True)
+        except Exception as e:
+            print(f"[StepReporter] 状态写入失败: {e}")
+
     def step_done(self, step_num: int, step_name: str, next_step: str = "", eta_seconds: int = 0):
         """
         步骤完成：发送进度更新到飞书群
@@ -479,6 +490,18 @@ class StepReporter:
         self._current_task["current_step"] = step_num
         print(f"[StepReporter] 📍 Step {step_num}/{total}: {step_name}")
 
+        # 同时写入状态文件
+        import subprocess
+        try:
+            next_arg = [str(step_num), step_name, next_step or "", str(eta_seconds or 0)]
+            subprocess.run([
+                "python3",
+                "/root/.openclaw/workspace/scripts/task_state_writer.py",
+                "step", *next_arg
+            ], timeout=5, capture_output=True)
+        except Exception as e:
+            print(f"[StepReporter] 状态写入失败: {e}")
+
     def task_done(self, message: str = ""):
         """
         任务完成：发送完成总结到飞书群
@@ -517,8 +540,20 @@ class StepReporter:
             }
         }
         self._send_card(card)
+        task_name = self._current_task["name"] if self._current_task else "?"
         self._current_task = None
-        print(f"[StepReporter] ✅ 任务完成: {self._current_task['name'] if self._current_task else '?'}")
+        print(f"[StepReporter] ✅ 任务完成: {task_name}")
+
+        # 写入完成状态 + 清除（让 Cron 不再汇报）
+        import subprocess
+        try:
+            subprocess.run([
+                "python3",
+                "/root/.openclaw/workspace/scripts/task_state_writer.py",
+                "done", message or ""
+            ], timeout=5, capture_output=True)
+        except Exception as e:
+            print(f"[StepReporter] 状态写入失败: {e}")
 
     def task_error(self, step_num: int, step_name: str, error_message: str = ""):
         """

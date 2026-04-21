@@ -317,6 +317,249 @@ class FeishuNotifier:
         except Exception as e:
             print(f"[Notifier] 群聊通知异常: {e}")
 
+
+
+class StepReporter:
+    """
+    全链路透明化步骤汇报器（反黑箱核心）
+
+    坤哥铁律：AI 每个操作步骤都对坤哥可见
+
+    用法：
+        reporter = StepReporter()
+        reporter.start_task("编写 Demo 脚本", total_steps=4)
+        # 飞书群收到：🆕 开始执行 | 任务计划（4步）
+        #
+        reporter.step_done(1, "分析 demo 需求", next_step="编写 demo1 代码")
+        # 飞书群收到：✅ Step 1/4 完成 | 下一步：编写 demo1 代码
+        #
+        reporter.step_done(2, "编写 demo1_longpoll.py", next_step="编写 demo2_callback.py")
+        # ...
+        #
+        reporter.task_done("全部完成！")
+        # 飞书群收到：✅ 任务完成 | 总结
+
+    与 notifier.notify_group_progress() 的区别：
+        - notify_group_progress: 单次进度条（0-100%）
+        - StepReporter: 任务级别的步骤计划 + 每步完成时主动汇报
+    """
+
+    def __init__(self, group_webhook: str = None):
+        self.group_webhook = group_webhook or os.environ.get(
+            "FEISHU_GROUP_WEBHOOK",
+            "https://open.feishu.cn/open-apis/bot/v2/hook/7a939580-e987-4571-a142-f58528cf71ec"
+        )
+        self._current_task = None  # 当前任务
+
+    def _send_card(self, card: dict):
+        """发送卡片到飞书群"""
+        try:
+            data = json.dumps(card, ensure_ascii=False).encode("utf-8")
+            req = urllib.request.Request(
+                self.group_webhook,
+                data=data,
+                headers={"Content-Type": "application/json"}
+            )
+            with urllib.request.urlopen(req, timeout=10) as resp:
+                result = json.loads(resp.read())
+                status = result.get("StatusCode") or result.get("code")
+                if status == 0:
+                    print(f"[StepReporter] 步骤通知已发送")
+                else:
+                    print(f"[StepReporter] 发送失败: {result}")
+        except Exception as e:
+            print(f"[StepReporter] 发送异常: {e}")
+
+    def _build_progress_bar(self, current: int, total: int) -> str:
+        """构建进度条：███░░░░░░░"""
+        filled = round(current / total * 10)
+        return "█" * filled + "░" * (10 - filled)
+
+    def start_task(self, task_name: str, total_steps: int = 1, task_desc: str = ""):
+        """
+        开始任务：发送任务计划到飞书群（告诉坤哥要做什么）
+
+        Args:
+            task_name: 任务名称（如"编写 Demo 脚本"）
+            total_steps: 总步骤数（如 4）
+            task_desc: 可选，任务详细描述
+        """
+        self._current_task = {
+            "name": task_name,
+            "total_steps": total_steps,
+            "current_step": 0,
+            "started_at": datetime.now().strftime("%H:%M:%S"),
+        }
+
+        # 构建步骤计划文字
+        steps_text = ""
+        if total_steps <= 10:
+            steps_text = "\n".join([
+                f"  Step {i}/{total_steps}: ..." for i in range(1, total_steps + 1)
+            ])
+
+        content_parts = [
+            f"**🤖 任务开始**: `{task_name}`",
+            f"**📋 任务计划**: 共 **{total_steps}** 步",
+        ]
+        if task_desc:
+            content_parts.append(f"**📝 描述**: {task_desc}")
+        if steps_text:
+            content_parts.append(f"**📌 步骤计划**:\n{steps_text}")
+        content_parts.append(f"**⏰ 开始时间**: `{self._current_task['started_at']}`")
+        content_parts.append("")
+        content_parts.append("🔔 坤哥将实时收到每步完成通知...")
+
+        card = {
+            "msg_type": "interactive",
+            "card": {
+                "header": {
+                    "title": {"tag": "plain_text", "content": f"🆕 任务开始 | {task_name}"},
+                    "template": "blue",
+                },
+                "elements": [
+                    {"tag": "markdown", "content": "\n".join(content_parts)},
+                    {"tag": "hr"},
+                    {"tag": "markdown", "content": "_AI 将实时汇报每步完成情况，请留意群消息_"},
+                ]
+            }
+        }
+        self._send_card(card)
+        print(f"[StepReporter] 🆕 任务开始: {task_name} ({total_steps} 步)")
+
+    def step_done(self, step_num: int, step_name: str, next_step: str = "", eta_seconds: int = 0):
+        """
+        步骤完成：发送进度更新到飞书群
+
+        Args:
+            step_num: 当前步骤（从 1 开始）
+            step_name: 当前步骤名称（如"分析 demo 需求"）
+            next_step: 下一步要做什么（如"编写 demo1 代码"）
+            eta_seconds: 预计剩余时间（秒）
+        """
+        if not self._current_task:
+            print(f"[StepReporter] ⚠️ 没有活跃任务，请先调用 start_task()")
+            return
+
+        total = self._current_task["total_steps"]
+        progress = round(step_num / total * 100)
+        bar = self._build_progress_bar(step_num, total)
+        elapsed = datetime.now().strftime("%H:%M:%S")
+
+        # 判断状态
+        if step_num == total:
+            status_text, color, template = "✅ 即将完成", "green", "green"
+        else:
+            status_text, color, template = "🔄 进行中", "orange", "orange"
+
+        content_parts = [
+            f"**📍 当前**: Step {step_num}/{total} — `{step_name}`",
+            f"**{status_text}**: {bar} **{progress}%**",
+        ]
+        if next_step:
+            content_parts.append(f"**➡️  下一步**: `{next_step}`")
+        if eta_seconds > 0:
+            eta_text = f"约 {eta_seconds} 秒" if eta_seconds < 60 else f"约 {eta_seconds // 60} 分钟"
+            content_parts.append(f"**⏱️  预计**: {eta_text} 后完成")
+        content_parts.append(f"**⏰ 已用时间**: `{elapsed}`")
+
+        card = {
+            "msg_type": "interactive",
+            "card": {
+                "header": {
+                    "title": {"tag": "plain_text", "content": f"{status_text} {self._current_task['name']}"},
+                    "template": template,
+                },
+                "elements": [
+                    {"tag": "markdown", "content": "\n".join(content_parts)},
+                ]
+            }
+        }
+        self._send_card(card)
+        self._current_task["current_step"] = step_num
+        print(f"[StepReporter] 📍 Step {step_num}/{total}: {step_name}")
+
+    def task_done(self, message: str = ""):
+        """
+        任务完成：发送完成总结到飞书群
+
+        Args:
+            message: 可选，完成总结（如"全部完成！用时 2 分钟"）
+        """
+        if not self._current_task:
+            print(f"[StepReporter] ⚠️ 没有活跃任务")
+            return
+
+        total = self._current_task["total_steps"]
+        started = self._current_task["started_at"]
+        elapsed = datetime.now().strftime("%H:%M:%S")
+
+        content_parts = [
+            f"**✅ 任务完成**: `{self._current_task['name']}`",
+            f"**📊 完成时间**: {started} → {elapsed}",
+            f"**📋 共完成**: {total}/{total} 步",
+        ]
+        if message:
+            content_parts.append(f"**📝 总结**: {message}")
+
+        card = {
+            "msg_type": "interactive",
+            "card": {
+                "header": {
+                    "title": {"tag": "plain_text", "content": f"✅ 任务完成 | {self._current_task['name']}"},
+                    "template": "green",
+                },
+                "elements": [
+                    {"tag": "markdown", "content": "\n".join(content_parts)},
+                    {"tag": "hr"},
+                    {"tag": "markdown", "content": "_感谢坤哥的耐心等待 🎉_"},
+                ]
+            }
+        }
+        self._send_card(card)
+        self._current_task = None
+        print(f"[StepReporter] ✅ 任务完成: {self._current_task['name'] if self._current_task else '?'}")
+
+    def task_error(self, step_num: int, step_name: str, error_message: str = ""):
+        """
+        任务出错：发送错误通知到飞书群
+
+        Args:
+            step_num: 当前步骤
+            step_name: 当前步骤名称
+            error_message: 错误信息
+        """
+        if not self._current_task:
+            print(f"[StepReporter] ⚠️ 没有活跃任务")
+            return
+
+        content_parts = [
+            f"**🔴 任务出错**: `{self._current_task['name']}`",
+            f"**📍 错误位置**: Step {step_num}/{self._current_task['total_steps']} — `{step_name}`",
+        ]
+        if error_message:
+            content_parts.append(f"**❌ 错误信息**: `{error_message}`")
+
+        card = {
+            "msg_type": "interactive",
+            "card": {
+                "header": {
+                    "title": {"tag": "plain_text", "content": f"🔴 任务出错 | {self._current_task['name']}"},
+                    "template": "red",
+                },
+                "elements": [
+                    {"tag": "markdown", "content": "\n".join(content_parts)},
+                    {"tag": "hr"},
+                    {"tag": "markdown", "content": "_AI 已停止，等待坤哥处理_"},
+                ]
+            }
+        }
+        self._send_card(card)
+        print(f"[StepReporter] 🔴 任务出错: Step {step_num} - {error_message}")
+
+
+
+
 class AuditLogger:
     """本地审计日志（备份）"""
     

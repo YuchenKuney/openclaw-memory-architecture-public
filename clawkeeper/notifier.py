@@ -19,7 +19,7 @@ try:
 except ImportError:
     # 如果 config_loader 不存在，使用默认值
     def get_webhook_url():
-        return os.environ.get("FEISHU_WEBHOOK", "https://open.feishu.cn/open-apis/bot/v2/hook/375a8be1-9e3e-4758-a78b-e775fd4d32a1")
+        return os.environ.get("FEISHU_WEBHOOK", "https://open.feishu.cn/open-apis/bot/v2/hook/7a939580-e987-4571-a142-f58528cf71ec")
     def get_user_id():
         return os.environ.get("KUNGE_ID", "")
     def get_group_id():

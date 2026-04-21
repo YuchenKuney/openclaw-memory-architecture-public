@@ -85,11 +85,12 @@ class ClawWatcher:
             status = data.get('status', 'running')
             job_id = data.get('jobId', Path(path).stem)
 
-            # 过滤：忽略 progress=0 或刚创建的文件（避免误报）
-            if progress == 0 and status == 'running':
+            # 任务开始时（progress=0）推送"开始"通知
+            if status == 'running' and progress == 0:
+                self.notifier.notify_group_progress(job_name, 1, '🚀 任务开始', f'开始执行，共 {data.get("totalSteps", "?")} 步')
                 return
 
-            # 只在 running 状态推送进度
+            # running 状态推送当前进度
             if status == 'running':
                 self.notifier.notify_group_progress(job_name, progress, step, message)
             elif status == 'done':

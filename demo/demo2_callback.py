@@ -499,17 +499,30 @@ def demo_approval_scenario():
 
     # 阻塞等待（最多300秒）
     deadline = time.time() + 300
+    check_count = 0
+    print(f"[Demo2] ⏳ 等待审批: {action_id} (最多 300 秒)")
+    print(f"[Demo2] 📋 等待方式: ReplyServer 接收飞书卡片回调")
+    print(f"[Demo2] 💡 坤哥操作: 点击卡片中的「✅ 允许放行」按钮")
+    print("-" * 60)
+
     while time.time() < deadline:
+        check_count += 1
+        elapsed = int(time.time() - (deadline - 300))
         status = registry.get_status(action_id)
+
         if status == "approved":
-            print(f"\n✅ 审批通过！AI 继续执行危险操作...")
+            print(f"[Demo2] ✅ 审批通过！（ReplyServer 已收到回调）")
             return True
         elif status == "rejected":
-            print(f"\n❌ 审批拒绝！AI 阻断危险操作")
+            print(f"[Demo2] ❌ 审批拒绝！（ReplyServer 已收到回调）")
             return False
+        else:
+            if check_count % 5 == 1:
+                print(f"[Demo2] ⏳ 等待中... (每2秒检查一次，已等 {elapsed}/300 秒)")
+
         time.sleep(2)
 
-    print(f"\n⏰ 审批超时（300秒），默认拒绝")
+    print(f"[Demo2] ⏰ 审批超时（300秒），默认拒绝")
     return False
 
 

@@ -358,17 +358,32 @@ class ApprovalListener:
                 print("❌ 审批拒绝/超时，阻断操作")
         """
         deadline = time.time() + timeout
+        check_count = 0
         print(f"[ApprovalListener] ⏳ 等待审批: {action_id} (最多 {timeout} 秒)")
+        print(f"[ApprovalListener] 📋 等待方式: 每2秒检查一次飞书群消息")
+        print(f"[ApprovalListener] 💡 坤哥操作: 在飞书群 @审批机器人 + 发送「允许」")
+        print("-" * 60)
 
         while time.time() < deadline:
+            check_count += 1
+            elapsed = int(time.time() - (deadline - timeout))
             status = self.registry.get_status(action_id)
+            
             if status == "approved":
-                print(f"[ApprovalListener] ✅ 审批通过: {action_id}")
+                print(f"[ApprovalListener] ✅ 审批通过！（检查了 {check_count} 次）")
                 return True
             elif status == "rejected":
-                print(f"[ApprovalListener] ❌ 审批拒绝: {action_id}")
+                print(f"[ApprovalListener] ❌ 审批拒绝！（检查了 {check_count} 次）")
                 return False
+            else:
+                # 每10秒打印一次等待状态（避免刷屏）
+                if check_count % 5 == 1:
+                    print(f"[ApprovalListener] ⏳ 等待中... (第 {check_count} 次检查，已等 {elapsed}/{timeout} 秒)")
+            
             time.sleep(2)
+
+        print(f"[ApprovalListener] ⏰ 审批超时（300秒），默认拒绝")
+        return False
 
         print(f"[ApprovalListener] ⏰ 审批超时: {action_id}（{timeout}秒），默认拒绝")
         return False

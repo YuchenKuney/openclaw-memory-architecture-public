@@ -50,6 +50,21 @@ def cmd_start(task_name: str, total_steps: int = 1, task_desc: str = ""):
     print(f"✅ 任务开始: {task_name} ({total_steps} 步)")
     print(f"STATE_FILE={STATE_FILE}")
 
+    # 启动后台监控 agent（subprocess，生命周期独立于父进程）
+    import subprocess, os
+    monitor_script = "/root/.openclaw/workspace/scripts/task_monitor_agent.py"
+    if os.path.exists(monitor_script):
+        # 启动后台进程（nohup + 重定向输出）
+        with open("/dev/null", "w") as devnull:
+            subprocess.Popen(
+                ["python3", monitor_script],
+                stdout=devnull, stderr=devnull,
+                start_new_session=True
+            )
+        print("✅ 后台监控 agent 已启动（每2分钟汇报一次）")
+    else:
+        print("⚠️ task_monitor_agent.py 不存在，跳过监控启动")
+
 
 def cmd_step(step_num: int, step_name: str, next_step: str = "", eta_seconds: int = 0):
     state = read_state()

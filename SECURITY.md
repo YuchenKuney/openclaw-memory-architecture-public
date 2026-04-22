@@ -1,41 +1,54 @@
-# 🔒 安全政策
+# Web4.0 AI Agent — Security Policy
 
-## 支持的版本
+Thank you for your interest in making Web4.0 safer!
 
-| 版本 | 支持状态 |
-|------|---------|
-| v7.x | ✅ 活跃维护 |
-| v6.x | ⚠️ 安全更新 |
-| v5.x | ❌ 已停止维护 |
+## 🔐 Responsible Disclosure
 
-## 报告安全漏洞
+We take security seriously. If you've found a vulnerability or have concerns about the Web4.0 AI Agent browser automation system, we encourage you to report it responsibly.
 
-如果你发现安全漏洞，请**不要**在 GitHub Issues 中公开报告！
+**Private Reporting Only**  
+Please do NOT open public issues on GitHub for security concerns. Instead, reach out privately so we have time to investigate and fix before public disclosure.
 
-请通过以下方式私下联系：
+**How to Report**  
+Send a private report to the repository maintainer via:
+- GitHub private vulnerability reporting (preferred)
+- Or contact the maintainer directly through their profile
 
-- 在 GitHub 上发送 Private Vulnerability Report
-- 或联系仓库维护者
+**What to Include**  
+- Description of the issue
+- Steps to reproduce
+- Potential impact assessment
+- Any suggested fixes (optional)
 
-我们承诺：
-- 48 小时内回复
-- 不公开披露直到修复发布
-- 给予合理的修复时间
+**Scope**  
+The `IronRuler` hardcoded rules in `web4_cookie_injector.py` are the primary security boundary. Issues related to:
+- Bypasses of the IronRuler rules
+- Cookie injection filtering gaps
+- Robots.txt compliance failures
+- Rate limiting evasion
+- Any unintended data exfiltration
 
-## 安全最佳实践
+...are all in scope and should be reported.
 
-使用本项目时：
+**Response Timeline**  
+- Acknowledgement: within 48 hours  
+- Initial assessment: within 7 days  
+- Fix rollout: as soon as possible (depending on severity)
 
-1. **API Key 安全**
-   - 不要将 API Key 硬编码到脚本中
-   - 使用环境变量传入
-   - 不要将包含 Key 的文件提交到 Git
+---
 
-2. **Webhook 安全**
-   - Webhook URL 仅用于接收消息，不要用于发送敏感数据
-   - 定期更换 Webhook
+## ⚖️ Legal Notice
 
-3. **服务器安全**
-   - 定期更新系统和依赖
-   - 使用防火墙限制访问
-   - 遵循最小权限原则
+Web4.0 AI Agent is provided for **legitimate public web research purposes only**.
+
+Users are solely responsible for ensuring their use complies with applicable laws, target site Terms of Service, and robots.txt policies. The maintainers accept no liability for misuse.
+
+**Strictly prohibited uses include:**
+- Unauthorized access to private/account data
+- Scraping banks, payment processors, government portals, or email accounts
+- Any activity that violates the Computer Fraud and Abuse Act (CFAA) or local equivalents
+- Bypassing paywalls or login barriers on commercial services
+
+---
+
+*Last updated: 2026-04-22*

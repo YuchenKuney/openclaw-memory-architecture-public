@@ -1,8 +1,20 @@
 #!/usr/bin/env python3
 """
-Web4.0 Cookie 注入器
-从坤哥导出的浏览器 Cookie JSON 中提取指定站点的 Cookie，
-注入到 Playwright 浏览器实例中。
+Web4.0 Cookie 注入器 + AI Agent 沙箱浏览器铁律
+
+用法：
+  from web4_cookie_injector import CookieInjector
+  injector = CookieInjector(cookie_json_path="/path/to/cookies.json")
+
+铁律：不注入非公开敏感信息
+  - 不注入 PayPal / 银行 / 金融类 Cookie
+  - 不注入社交媒体私人会话 Cookie（LinkedIn私人消息等）
+  - 只注入搜索引擎 + 公开内容类 Cookie
+
+安全启动横幅（SECURITY.md）
+  ⚠️  本工具仅用于合法公开网页研究
+  ⚠️  使用者须遵守 robots.txt + 目标站点服务条款
+  ⚠️  严禁爬取银行/支付/政府/邮箱等私密页面
 
 用法：
   from web4_cookie_injector import CookieInjector
@@ -399,7 +411,18 @@ def launch_with_cookies(
 # ══════════════════════════════════════════════════════════════
 
 if __name__ == "__main__":
-    import argparse
+    import argparse, textwrap
+    print(textwrap.dedent("""
+    ╔══════════════════════════════════════════════════════════════╗
+    ║          ⚠️  Web4.0 AI Agent 安全启动提醒              ║
+    ╠══════════════════════════════════════════════════════════════╣
+    ║  本工具仅用于合法公开网页研究                            ║
+    ║  使用前请确保已阅读并理解 SECURITY.md 安全政策          ║
+    ║  必须遵守 robots.txt + 目标站点服务条款                ║
+    ║  严禁爬取银行/支付/政府/邮箱等私密页面                  ║
+    ║  铁律已硬编码，违规操作将被自动拦截并记录              ║
+    ╚══════════════════════════════════════════════════════════════╝
+    """).strip())
     parser = argparse.ArgumentParser(description="Web4.0 Cookie 注入器")
     parser.add_argument("--cookie-file", required=True, help="坤哥导出的 Cookie JSON 文件路径")
     parser.add_argument("--list-only", action="store_true", help="只列出 Cookie，不启动浏览器")
@@ -494,13 +517,22 @@ class IronRuler:
 
     def fetch_page(self, url: str) -> bool:
         """
-        铁律执行：检查 URL 是否允许请求
+        铁律执行：检查 URL 是否允许请求（含robots.txt合规检查）
         不允许时抛出 PermissionError
         """
+        # 铁律二 + 铁律一：域名白名单 + 敏感路径检查
         if not self._is_public_url(url):
+            self.audit_log("BLOCK", url, "铁律二(公开URL)", "不在白名单或含敏感路径")
             raise PermissionError(
                 "🚫 铁律禁止：只允许访问公开页面，请勿请求私密/账号数据。"
             )
+        # 铁律五：robots.txt 合规检查（最高优先级）
+        ok, reason = self.is_allowed_by_robots(url)
+        if not ok:
+            self.audit_log("ROBOTS", url, "铁律五(robots.txt)", reason)
+            raise PermissionError(f"🚫 {reason}")
+        if "⚠️" in reason:
+            self.audit_log("WARN", url, "铁律五(robots.txt)", reason)
         return True
 
     # ── 铁律一：身份铁律 ──────────────────────────────────────────
@@ -732,6 +764,113 @@ class IronRuler:
             "min_interval_sec": self._min_interval,
             "domains_accessed": list(self._last_request_time.keys()),
         }
+
+    # ── 铁律五：robots.txt 合规检查（新增）────────────────────
+    # 行动优先级：🔥🔥🔥🔥🔥 最高
+    ROBOTS_TXT_CACHE: dict[str, str] = {}  # URL → robots.txt 内容缓存
+
+    def fetch_robots_txt(self, url: str) -> str | None:
+        """
+        获取目标 URL 的 robots.txt 内容（带缓存，避免重复请求）
+        返回 None 表示获取失败（不阻断，只警告）
+        """
+        from urllib.parse import urlparse
+        parsed = urlparse(url)
+        robots_url = f"{parsed.scheme}://{parsed.netloc}/robots.txt"
+
+        if robots_url in self.ROBOTS_TXT_CACHE:
+            return self.ROBOTS_TXT_CACHE[robots_url]
+
+        try:
+            import urllib.request
+            req = urllib.request.Request(
+                robots_url,
+                headers={"User-Agent": "Web4Bot/1.0 (AI research bot)"}
+            )
+            with urllib.request.urlopen(req, timeout=5) as resp:
+                txt = resp.read().decode("utf-8", errors="ignore")
+                self.ROBOTS_TXT_CACHE[robots_url] = txt
+                return txt
+        except Exception:
+            return None
+
+    def is_allowed_by_robots(self, url: str) -> tuple[bool, str]:
+        """
+        铁律五：检查 URL 是否被目标 robots.txt 允许
+        返回 (是否允许, 原因说明)
+        """
+        from urllib.parse import urlparse
+        parsed = urlparse(url)
+        domain = parsed.netloc
+        path = parsed.path
+        full_url = urlparse(url).geturl()
+
+        robots_txt = self.fetch_robots_txt(url)
+        if robots_txt is None:
+            return True, "⚠️ robots.txt 获取失败，跳过检查（只警告不阻断）"
+
+        # 简单解析：按 User-Agent 行找规则块，找最匹配的规则
+        lines = robots_txt.split("\n")
+        current_ua = "*"
+        rules_for_ua: list[tuple[str, str]] = []
+
+        for line in lines:
+            line = line.strip()
+            if not line or line.startswith("#"):
+                continue
+            if line.lower().startswith("user-agent:"):
+                current_ua = line.split(":", 1)[1].strip()
+            elif line.lower().startswith(("allow:", "disallow:")):
+                directive, pattern = line.split(":", 1)
+                pattern = pattern.strip()
+                if current_ua == "*" or "Web4Bot" in current_ua:
+                    rules_for_ua.append((directive.strip().lower(), pattern))
+
+        if not rules_for_ua:
+            return True, "OK (无匹配robots规则)"
+
+
+        # 检查是否有 Disallow 匹配当前路径
+        allowed = True
+        for directive, pattern in rules_for_ua:
+            if pattern and pattern != "/":
+                # 简单通配：pattern 匹配 path 前缀
+                if path.startswith(pattern) or pattern in path:
+                    if directive == "disallow":
+                        allowed = False
+                    elif directive == "allow":
+                        allowed = True
+                        break
+            elif pattern == "/" and directive == "disallow":
+                allowed = False
+
+        if not allowed:
+            return False, f"🚫 robots.txt 禁止：{path} 被目标网站 disallow"
+        return True, "OK (robots.txt 允许访问)"
+
+    # ── 铁律六：审计日志（新增）─────────────────────────────
+    # 行动优先级：🔥🔥🔥🔥
+    AUDIT_LOG: list[dict] = []  # 内存审计日志（铁律拦截记录）
+
+    def audit_log(self, event_type: str, url: str, rule: str, result: str):
+        """"记录铁律拦截/审批事件"""
+        import datetime
+        entry = {
+            "time": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+            "event": event_type,
+            "url": url,
+            "rule": rule,
+            "result": result,
+        }
+        self.AUDIT_LOG.append(entry)
+        # 保留最近 500 条
+        if len(self.AUDIT_LOG) > 500:
+            self.AUDIT_LOG = self.AUDIT_LOG[-500:]
+        print(f"  📋 审计日志 [{event_type}] {url} | {rule} → {result}")
+
+    def get_audit_log(self) -> list[dict]:
+        """获取完整审计日志"""
+        return list(self.AUDIT_LOG)
 
 
 # ═══════════════════════════════════════════════════════════════════

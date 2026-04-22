@@ -230,20 +230,57 @@ class Interceptor:
         self._send_card(card)
 
     def _send_card(self, card: dict):
-        """发送飞书卡片"""
-        webhook = os.environ.get(
-            "FEISHU_WEBHOOK",
-            "https://open.feishu.cn/open-apis/bot/v2/hook/375a8be1-9e3e-4758-a78b-e775fd4d32a1"
-        )
+        """发送飞书卡片（使用企业应用 API，支持按钮回调）"""
+        # 读取企业应用配置
+        import yaml
+        config_path = os.path.join(os.path.dirname(__file__), "config.yaml")
+        app_id = "cli_a96c9b5700f91bc9"
+        app_secret = "9MIsa05GBFJmufGVy1Y9DfPOAMC62MB3"
         try:
-            data = json.dumps(card, ensure_ascii=False).encode("utf-8")
-            req = urllib.request.Request(webhook, data=data, headers={"Content-Type": "application/json"})
-            with urllib.request.urlopen(req, timeout=10) as resp:
-                result = json.loads(resp.read())
-                if result.get("StatusCode") != 0 and result.get("code") != 0:
-                    print(f"[Interceptor] 卡片发送失败: {result}")
-        except Exception as e:
-            print(f"[Interceptor] 卡片发送异常: {e}")
+            with open(config_path) as f:
+                cfg = yaml.safe_load(f)
+                ee = cfg.get("feishu_enterprise", {})
+                app_id = ee.get("app_id", app_id)
+                app_secret = ee.get("app_secret", app_secret)
+        except Exception:
+            pass
+
+        # 获取 tenant_access_token
+        token_url = "https://open.feishu.cn/open-apis/auth/v3/tenant_access_token/internal"
+        token_data = json.dumps({"app_id": app_id, "app_secret": app_secret}).encode("utf-8")
+        token_req = urllib.request.Request(token_url, data=token_data, headers={"Content-Type": "application/json"})
+        with urllib.request.urlopen(token_req, timeout=10) as resp:
+            token_result = json.loads(resp.read())
+            if token_result.get("code") != 0:
+                print(f"[Interceptor] 获取token失败: {token_result}")
+                return
+            token = token_result["tenant_access_token"]
+
+        # 发送消息到群（使用 enterprise app）
+        # receive_id_type: chat_id 表示群ID
+        send_url = "https://open.feishu.cn/open-apis/im/v1/messages?receive_id_type=chat_id"
+        # 群ID用 group_id
+        group_id = os.environ.get("FEISHU_GROUP_ID", "oc_0533b03e077fedca255c4d2c6717deea")
+        # content 是卡片的 JSON 字符串（不是 {"card": card}）
+        msg_body = json.dumps({
+            "receive_id": group_id,
+            "msg_type": "interactive",
+            "content": json.dumps(card)
+        }).encode("utf-8")
+        msg_req = urllib.request.Request(
+            send_url,
+            data=msg_body,
+            headers={
+                "Content-Type": "application/json",
+                "Authorization": f"Bearer {token}"
+            }
+        )
+        with urllib.request.urlopen(msg_req, timeout=10) as resp:
+            result = json.loads(resp.read())
+            if result.get("code") != 0:
+                print(f"[Interceptor] 卡片发送失败: {result}")
+            else:
+                print(f"[Interceptor] 卡片发送成功")
 
     def approve(self, path: str) -> bool:
         """坤哥批准操作"""

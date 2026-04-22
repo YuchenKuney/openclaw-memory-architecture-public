@@ -39,11 +39,12 @@ PROTECTED_DIRS = [
 
 # 危险操作类型
 INOTIFY_EVENTS = {
-    "IN_DELETE": "DELETE",      # 文件被删除
-    "IN_MODIFY": "MODIFY",     # 文件被修改
-    "IN_MOVED_FROM": "MOVED_FROM",  # 文件被移走
-    "IN_MOVED_TO": "MOVED_TO",      # 文件被移入
-    "IN_CREATE": "CREATE",     # 文件被创建
+    "IN_DELETE": "DELETE",
+    "IN_MODIFY": "MODIFY",
+    "IN_CLOSE_WRITE": "MODIFY",
+    "IN_MOVED_FROM": "MOVED_FROM",
+    "IN_MOVED_TO": "MOVED_TO",
+    "IN_CREATE": "CREATE",
 }
 
 
@@ -171,7 +172,9 @@ class ClawWatcher:
             try:
                 i.add_watch(base_path,
                     constants.IN_CREATE | constants.IN_DELETE |
-                    constants.IN_MODIFY | constants.IN_MOVED_FROM | constants.IN_MOVED_TO)
+                    constants.IN_MODIFY | constants.IN_CLOSE_WRITE |
+                    constants.IN_OPEN | constants.IN_ACCESS |
+                    constants.IN_MOVED_FROM | constants.IN_MOVED_TO)
                 print(f"[ClawWatcher] +监控: {base_path}")
             except Exception as e:
                 print(f"[ClawWatcher] 添加监控失败: {base_path}: {e}")
@@ -205,7 +208,9 @@ class ClawWatcher:
                         try:
                             i.add_watch(full_path,
                                 constants.IN_CREATE | constants.IN_DELETE |
-                                constants.IN_MODIFY | constants.IN_MOVED_FROM | constants.IN_MOVED_TO)
+                                constants.IN_MODIFY | constants.IN_CLOSE_WRITE |
+                                constants.IN_OPEN | constants.IN_ACCESS |
+                                constants.IN_MOVED_FROM | constants.IN_MOVED_TO)
                             print(f"[ClawWatcher] +新目录监控: {full_path}")
                         except Exception as e:
                             pass

@@ -170,10 +170,10 @@ class FeishuNotifier:
             # 尝试解析 JSON
             try:
                 data = json.loads(content)
-                job_name = data.get('job', '未知任务')
-                status = data.get('status', event_type.lower())
+                job_name = data.get('event', data.get('job', '未知任务'))
+                status = data.get('action', data.get('status', event_type.lower()))
                 message = data.get('message', '')
-                triggered_at = data.get('triggeredAt', '')
+                triggered_at = data.get('timestamp', data.get('triggeredAt', ''))
             except json.JSONDecodeError:
                 job_name = content
                 status = event_type.lower()

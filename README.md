@@ -8,7 +8,7 @@
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Contributors](https://img.shields.io/badge/Contributors-Welcome-green.svg)](CONTRIBUTORS.md)
-[![Version: v11.9](https://img.shields.io/badge/Version-v11.9-blue.svg)]
+[![Version: v11.10](https://img.shields.io/badge/Version-v11.10-blue.svg)]
 
 ## 🌟 简介
 
@@ -19,6 +19,16 @@
 - **飞书审批联动**：危险操作被拦截 → 飞书卡片按钮 → toast 弹窗 → AI 继续执行
 - **StepReporter**：AI 每步操作主动汇报到飞书群（全链路透明化）
 - **Web4.0 stealth**：17 项反检测措施，绕过 Bing/Google 人机检测
+
+## 🔥 v11.10 Bug 修复（2026-04-22）
+
+**cron-events 监控链路 bug 修复**：
+- **Root Cause**：创建新文件时 inotify 触发 `IN_CREATE`+`IN_OPEN`+`IN_MODIFY`+`IN_CLOSE_WRITE`，但 `add_watch` 只注册了 `IN_MODIFY`，漏掉 `IN_CLOSE_WRITE`，导致 cron 事件文件永远不被捕获
+- **Fix**：`INOTIFY_EVENTS` 新增 `IN_CLOSE_WRITE → MODIFY` 映射
+- **Fix**：两处 `add_watch` 调用新增 `IN_CLOSE_WRITE|IN_OPEN|IN_ACCESS` 标志位
+- **Fix**：`notifier.py` 字段映射修正：`event→job_name`、`action→status`、`timestamp→triggered_at`（兼容 `cron-event-writer.py` 写入的 JSON 格式）
+
+**影响**：18:30 记忆同步等 cron 定时任务现在能正确触发飞书群通知
 
 ## 🔥 v11.9 安全升级（2026-04-22）
 

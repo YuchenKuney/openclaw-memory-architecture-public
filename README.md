@@ -8,7 +8,7 @@
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Contributors](https://img.shields.io/badge/Contributors-Welcome-green.svg)](CONTRIBUTORS.md)
-[![Version: v11.8](https://img.shields.io/badge/Version-v11.6-blue.svg)]
+[![Version: v11.9](https://img.shields.io/badge/Version-v11.9-blue.svg)]
 
 ## 🌟 简介
 
@@ -20,9 +20,25 @@
 - **StepReporter**：AI 每步操作主动汇报到飞书群（全链路透明化）
 - **Web4.0 stealth**：17 项反检测措施，绕过 Bing/Google 人机检测
 
-## 🔥 v11.8 今日修复
+## 🔥 v11.9 安全升级（2026-04-22）
 
-**v11.8 修复内容**（2026-04-21）：
+**Web4.0 铁律体系全面升级**：
+- 🔥🔥🔥🔥🔥 **铁律五：robots.txt 合规检查** — `is_allowed_by_robots()` 集成到 `fetch_page()`，Shopee `/user/` 等路径 robots.txt disallow 时自动拦截
+- 🔥🔥🔥🔥 **铁律六：审计日志** — `IronRuler.audit_log()` 记录所有铁律拦截事件，保留最近 500 条
+- 🔥🔥🔥🔥 **启动免责横幅** — `__main__` 启动时打印醒目法律边界提醒
+- 🔥🔥🔥 **安全报告机制** — 新增 `SECURITY.md` 负责任披露政策
+- 🔥🔥 **速率限制** — 已有 3 秒间隔 + 50 次上限
+
+**飞书审批链路修复**：
+- ReplyServer `PendingRegistry.resolve()` 多实例 reload 修复
+- Button `value` 格式修正（对象 → 正确格式）
+- `action` 值：`ALLOW`/`DENY`（大写）
+
+**新增文件**：
+- `web4_IRON_RULES.md` — Web4.0 铁律完整文档（硬编码版）
+- `SECURITY.md` — 安全政策 + 负责任披露流程
+
+## 🔥 v11.8 修复（2026-04-21）
 - 重启告警优化：少于5次静默拉起，不刷屏
 - task_agent MAX_RUNTIME 2小时→24小时（修复无限重启）
 - watcher 新增任务开始时推送通知
@@ -311,7 +327,8 @@ openclaw-memory-architecture/
 ├── memory/                      # 日记层
 ├── AGENTS.md                   # Agent 操作规范
 ├── ANTI_BLACKBOX.md            # 反黑箱文档
-└── README.md
+├── web4_IRON_RULES.md         # Web4.0 铁律（硬编码版）
+└── SECURITY.md                # 安全政策 + 负责任披露
 ```
 
 ## 🌐 Web4.0 AI Agent 沙箱
@@ -333,6 +350,8 @@ openclaw-memory-architecture/
 - **Seccomp 过滤**：只允许 ~100 个安全系统调用
 - **IPv6 ULA**：每容器分配唯一地址
 - **Cookie 铁律**：只注入 Google preference cookies，禁止登录态 tokens
+- **robots.txt 合规**：铁律五，fetch_page 集成检查
+- **审计日志**：铁律六，IronRuler.audit_log() 全量记录
 
 ## 🤝 贡献与支持者
 

@@ -235,6 +235,8 @@ class PendingRegistry:
         print(f"[PendingRegistry] 新增待审批: {action_id} | {info.get('message', info.get('path', 'N/A'))}")
 
     def resolve(self, action_id: str, status: str) -> dict:
+        # 每次处理前重新加载文件，确保拿到最新数据（多实例共享）
+        self._load()
         if action_id not in self._data:
             # 模糊匹配最新 pending
             pending = [k for k, v in self._data.items() if v.get("status") == "pending"]

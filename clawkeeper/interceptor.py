@@ -192,13 +192,13 @@ class Interceptor:
                             "tag": "button",
                             "text": {"tag": "plain_text", "content": "✅ 允许"},
                             "type": "primary",
-                            "value": json.dumps({"action": "approve", "id": action_id}, ensure_ascii=False)
+                            "value": {"action": "ALLOW", "approval_id": action_id}
                         },
                         {
                             "tag": "button",
                             "text": {"tag": "plain_text", "content": "❌ 拒绝"},
                             "type": "danger",
-                            "value": json.dumps({"action": "reject", "id": action_id}, ensure_ascii=False)
+                            "value": {"action": "DENY", "approval_id": action_id}
                         }
                     ]},
                     {"tag": "markdown", "content": "⚠️ 系统已沙箱隔离，等待坤哥审批后AI才执行"},
@@ -214,36 +214,34 @@ class Interceptor:
     def _send_urgent_alert(self, action, ia: InterceptAction, action_id: str):
         """CRITICAL 额外发送紧急告警（双卡片保险）"""
         card = {
-            "msg_type": "interactive",
-            "card": {
-                "header": {
-                    "title": {"tag": "plain_text", "content": "🔴🔴🔴 最高风险 - 需要立即处理"},
-                    "template": "red",
-                },
-                "elements": [
-                    {"tag": "markdown", "content": f"**操作**: {action.message}"},
-                    {"tag": "markdown", "content": f"**审批ID**: `{action_id}`"},
-                    {"tag": "markdown", "content": "⚠️ **请立即处理**：点击上方按钮「允许」或「拒绝」"},
-                ]
-            }
+            "header": {
+                "title": {"tag": "plain_text", "content": "🔴🔴🔴 最高风险 - 需要立即处理"},
+                "template": "red",
+            },
+            "elements": [
+                {"tag": "markdown", "content": f"**操作**: {action.message}"},
+                {"tag": "markdown", "content": f"**审批ID**: `{action_id}`"},
+                {"tag": "markdown", "content": "⚠️ **请立即处理**：点击上方按钮「允许」或「拒绝」"},
+            ]
         }
         self._send_card(card)
 
+    def _load_env(self):
+        """从 /etc/environment 加载环境变量"""
+        if os.path.exists('/etc/environment'):
+            with open('/etc/environment') as _f:
+                for _line in _f:
+                    _line = _line.strip()
+                    if '=' in _line and not _line.startswith('#'):
+                        _k, _v = _line.split('=', 1)
+                        _v = _v.strip('\"')
+                        os.environ.setdefault(_k, _v)
+
     def _send_card(self, card: dict):
         """发送飞书卡片（使用企业应用 API，支持按钮回调）"""
-        # 读取企业应用配置
-        import yaml
-        config_path = os.path.join(os.path.dirname(__file__), "config.yaml")
-        app_id = "cli_a96c9b5700f91bc9"
-        app_secret = "9MIsa05GBFJmufGVy1Y9DfPOAMC62MB3"
-        try:
-            with open(config_path) as f:
-                cfg = yaml.safe_load(f)
-                ee = cfg.get("feishu_enterprise", {})
-                app_id = ee.get("app_id", app_id)
-                app_secret = ee.get("app_secret", app_secret)
-        except Exception:
-            pass
+        self._load_env()
+        app_id = os.environ.get("FEISHU_APP_ID", "cli_a96c9b5700f91bc9")
+        app_secret = os.environ.get("FEISHU_APP_SECRET", "${FEISHU_APP_SECRET}")
 
         # 获取 tenant_access_token
         token_url = "https://open.feishu.cn/open-apis/auth/v3/tenant_access_token/internal"

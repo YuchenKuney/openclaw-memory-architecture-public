@@ -454,6 +454,55 @@ class IronRuler:
     铁律执行器 — 4 条绝对禁令，不可被 cooking 覆盖
     """
 
+    # ── 铁律核心检查 ──────────────────────────────────────────
+    # 铁律检查入口（两步走：域名白名单 + 敏感路径黑名单）
+    # 对应坤哥 reference 代码的 _is_public_url() + fetch_page()
+    SITES = [
+        "google.com", ".google.com", "www.google.com",
+        "google.co.jp", "www.google.co.jp",
+        "youtube.com", ".youtube.com", "www.youtube.com", "youtu.be",
+        "shopee.com", ".shopee.com", "www.shopee.com",
+        "shopee.co.id", ".shopee.co.id",
+        "shopee.sg", ".shopee.sg",
+        "shopee.ph", ".shopee.ph",
+        "shopee.vn", ".shopee.vn",
+        "shopee.my", ".shopee.my",
+        "shopee.th", ".shopee.th",
+        "tiktok.com", ".tiktok.com", "www.tiktok.com",
+        "bing.com", ".bing.com", "www.bing.com",
+        "duckduckgo.com", ".duckduckgo.com",
+        "ip2location.com", ".ip2location.com",
+    ]  # 域名白名单（铁律二）
+    SENSITIVE_PATHS = [  # 敏感路径黑名单（铁律二）
+        "/user/", "/account/", "/order/", "/settings",
+        "/wallet", "/login", "/signup",
+        "/seller/", "/vendor/", "/partner/", "/affiliate/",
+        "/admin/", "/dashboard/", "/crm/", "/backend/",
+    ]
+
+    def _is_public_url(self, url: str) -> bool:
+        """
+        铁律核心检查：URL 是否为公开页面
+        - 域名必须在白名单中
+        - 路径不能包含敏感路径
+        """
+        # 域名白名单检查
+        domain_ok = any(domain in url for domain in self.SITES)
+        # 敏感路径黑名单检查
+        path_ok = not any(path in url for path in self.SENSITIVE_PATHS)
+        return domain_ok and path_ok
+
+    def fetch_page(self, url: str) -> bool:
+        """
+        铁律执行：检查 URL 是否允许请求
+        不允许时抛出 PermissionError
+        """
+        if not self._is_public_url(url):
+            raise PermissionError(
+                "🚫 铁律禁止：只允许访问公开页面，请勿请求私密/账号数据。"
+            )
+        return True
+
     # ── 铁律一：身份铁律 ──────────────────────────────────────────
     # Google 账号只用于模拟普通用户，禁止任何账号操作
     IDENTITY_BLOCKED_PATHS = {

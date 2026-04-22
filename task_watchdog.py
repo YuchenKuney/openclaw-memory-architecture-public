@@ -317,6 +317,7 @@ def watchdog_loop(daemon: bool = False, once: bool = False):
                         print(f"[Watchdog] ⚠️ 重启次数少（{restart_count}次），静默拉起")
                     new_pids = start_all_monitors()
                     current_pids.update(new_pids)
+                    state["monitor_pids"] = current_pids.copy()
             update_heartbeat(state, alive)
 
             # 每 30 秒更新一次心跳文件（不通知）

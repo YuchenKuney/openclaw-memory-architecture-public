@@ -8,7 +8,7 @@
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Contributors](https://img.shields.io/badge/Contributors-Welcome-green.svg)](CONTRIBUTORS.md)
-[![Version: v11.10](https://img.shields.io/badge/Version-v11.10-blue.svg)]
+[![Version: v11.11](https://img.shields.io/badge/Version-v11.11-blue.svg)]
 
 ## 🌟 简介
 
@@ -19,6 +19,21 @@
 - **飞书审批联动**：危险操作被拦截 → 飞书卡片按钮 → toast 弹窗 → AI 继续执行
 - **StepReporter**：AI 每步操作主动汇报到飞书群（全链路透明化）
 - **Web4.0 stealth**：17 项反检测措施，绕过 Bing/Google 人机检测
+
+## 🔥 v11.11 Bug 修复（2026-04-23）
+
+**6 个 Bug 修复 + 脱敏处理**：
+
+| Bug | 文件 | 严重度 | 修复内容 |
+|-----|------|--------|---------|
+| Bug 2 | `interceptor.py` | 🔴 | `reject()` 添加 `rollback` 参数，修复 `TypeError: reject() got unexpected keyword argument 'rollback'` |
+| Bug 6 | `interceptor.py` | 🔴 | `wait_for_approval` 改为指数退避轮询（0.5s 起步→5s 上限），解决固定 2s 轮询 CPU 空转问题 |
+| Bug 6 | `reply_handler.py` | 🔴 | `get_status()` 每次重新 `_load()` 文件，修复跨进程状态同步失效 |
+| Bug 4 | `detector.py` | 🟡 | 删除死代码 `_should_notify()`（从未被调用）；装饰器参数名加下划线 `_level`/`_mode` 避免遮蔽 |
+| Bug 5 | `auditor.py` | 🟡 | 正则加 `\b` 词边界，消除 `request.POST`/`curly`/`curly_braces` 误报 |
+| 脱敏 | `interceptor.py` | 🔒 | 硬编码 `app_secret` 改为 `os.environ.get()` 环境变量读取 |
+
+**影响**：审批链路更稳定，扫描误报率降低，敏感信息不再泄漏到代码中。
 
 ## 🔥 v11.10 Bug 修复（2026-04-22）
 

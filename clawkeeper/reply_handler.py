@@ -267,6 +267,7 @@ class PendingRegistry:
         return {k: v for k, v in self._data.items() if v.get("status") == "pending"}
 
     def get_status(self, action_id: str) -> str:
+        self._load()  # 每次检查都重新加载文件，确保跨进程同步
         return self._data.get(action_id, {}).get("status", "")
 
 

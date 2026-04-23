@@ -626,10 +626,7 @@ class RiskDetector:
         except Exception:
             return ""
 
-    def _should_notify(self, level: RiskLevel) -> bool:
-        """根据配置判断是否通知"""
-        level_map = {"CRITICAL": 0, "HIGH": 1, "MEDIUM": 2, "LOW": 3, "OFF": 99}
-        return level <= level_map.get(self.notification_level, 2)
+    # 注意：_should_notify() 方法已删除（死代码，从未被调用）
 
     # ---------- PR①：双层评估（正则 + 语义）----------
     async def evaluate_async(self, event_info: dict) -> Optional[Action]:
@@ -891,8 +888,8 @@ if __name__ == "__main__":
 
 def _build_action_wrapper(original_method):
     """装饰器：在 _build_action 后自动联动知识图谱"""
-    def wrapper(self, event_info, level, semantic_result=None, mode="work"):
-        action = original_method(self, event_info, level, semantic_result, mode)
+    def wrapper(self, event_info, _level, semantic_result=None, _mode="work"):
+        action = original_method(self, event_info, _level, semantic_result, _mode)
         if action and action.level >= RiskLevel.MEDIUM:
             # 异步联动，不阻塞主流程
             try:

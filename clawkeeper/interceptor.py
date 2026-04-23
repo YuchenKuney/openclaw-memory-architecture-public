@@ -290,8 +290,11 @@ class Interceptor:
         print(f"[Interceptor] ✅ 坤哥已批准: {path}")
         return True
 
-    def reject(self, path: str) -> bool:
-        """坤哥拒绝操作"""
+    def reject(self, path: str, rollback: bool = False) -> bool:
+        """
+        坤哥拒绝操作
+        rollback: 是否回退文件变更（待扩展）
+        """
         if path in self.blocked_paths:
             self.blocked_paths.discard(path)
         if path in self.pending_actions:
@@ -338,6 +341,9 @@ class Interceptor:
         deadline = time.time() + timeout
         print(f'[Interceptor] ⏳ 等待审批: {action_id} (最多 {timeout} 秒)')
 
+        poll_interval = 0.5  # 起始轮询间隔 500ms（快速响应）
+        max_interval = 5.0   # 最大轮询间隔 5 秒（避免空转）
+
         while time.time() < deadline:
             status = self.pending_registry.get_status(action_id)
             if status == 'approved':
@@ -346,7 +352,9 @@ class Interceptor:
             elif status == 'rejected':
                 print(f'[Interceptor] ❌ 审批拒绝: {action_id}，操作阻断')
                 return False
-            time.sleep(2)
+            # 审批中：指数退避轮询，空闲时减少 CPU 浪费
+            time.sleep(poll_interval)
+            poll_interval = min(poll_interval * 1.5, max_interval)
 
         print(f'[Interceptor] ⏰ 审批超时: {action_id}（{timeout}秒），默认拒绝')
         return False

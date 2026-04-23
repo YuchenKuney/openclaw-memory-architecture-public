@@ -297,13 +297,13 @@ class Auditor:
             (r"subprocess\.run\([^)]*shell\s*=\s*True", "subprocess shell=True", "critical"),
             (r"os\.system\s*\(", "os.system() 调用", "high"),
             (r"os\.popen\s*\(", "os.popen() 调用", "high"),
-            (r"curl\s+", "curl 命令执行", "medium"),
+            (r"\bcurl\s+", "curl 命令执行", "medium"),       # \b 防止匹配 curly/curly_braces
             (r"wget\s+", "wget 命令执行", "medium"),
-            (r"requests\.(post|put)\s*\(", "外部 HTTP POST/PUT", "medium"),
+            (r"\brequests\.(post|put)\b", "外部 HTTP POST/PUT", "medium"),  # \b 防止匹配 Django request.POST
             (r"urllib\.request\.urlopen\s*\(", "urllib 请求", "low"),
             (r"shutil\.rmtree\s*\(", "shutil.rmtree 递归删除", "high"),
             (r"chmod\s*\(.*0o?777", "777 权限设置", "critical"),
-            (r"open\s*\([^)]*['\"]w['\"]", "文件写入 open()", "low"),
+            (r"open\s*\([^)]*,\s*['\"]w['\"]", "文件写入 open()", "low"),  # 要求逗号，排除 openpyxl
             (r"os\.chmod\s*\(.*0o?\d{3}", "os.chmod 改权限", "medium"),
             (r"import\s+.*sys\s*;.*os\.system", "sys+os.system 组合", "critical"),
         ]

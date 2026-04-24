@@ -8,13 +8,13 @@
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Contributors](https://img.shields.io/badge/Contributors-Welcome-green.svg)](CONTRIBUTORS.md)
-[![Version: v11.11](https://img.shields.io/badge/Version-v11.11-blue.svg)]
+[![Version: v12](https://img.shields.io/badge/Version-v12-blue.svg)]
 
 ## 🌟 简介
 
 本项目是基于 OpenClaw **MIT** 开源协议的二次架构扩展。
 
-**v11.7 版本核心**：飞书审批联动 + Web4.0 加强版 stealth（Bing 搜索从 0→34,600 条真实数据）
+**v12 版本核心**：AI 自进化技能工厂 + Web4.0 安全铁律体系（Bing 搜索从 0→34,600 条真实数据）
 
 - **飞书审批联动**：危险操作被拦截 → 飞书卡片按钮 → toast 弹窗 → AI 继续执行
 - **StepReporter**：AI 每步操作主动汇报到飞书群（全链路透明化）
@@ -377,6 +377,46 @@ openclaw-memory-architecture/
 - **Cookie 铁律**：只注入 Google preference cookies，禁止登录态 tokens
 - **robots.txt 合规**：铁律五，fetch_page 集成检查
 - **审计日志**：铁律六，IronRuler.audit_log() 全量记录
+
+## 🔧 v12 - AI 自进化技能工厂 (2026-04-24)
+
+> 当 AI 发现现有 Skills 无法完成新任务时，自动派子 Agent 去新加坡服务器制造新技能，通过 VPN 加密隧道同步，全程 Webhook 推送。
+
+### 核心价值
+
+```
+用户给任务 → AI判断Skills不足 → 自动制造 → VPN同步 → 执行
+```
+
+### 两个版本
+
+| 版本 | 架构 | 适用场景 |
+|------|------|---------|
+| **版本A** | 多服务器 + WireGuard VPN | 算力分散、多Agent协作 |
+| **版本B** | 单机自动判断+创造 | 单Agent快速部署 |
+
+### 快速开始
+
+```bash
+# 版本B（单机，推荐）
+cd v12_skill_factory/VERSION_B_SINGLE_SERVER
+bash setup.sh
+python3 scripts/skill_judge.py "帮我分析英国电商市场"
+
+# 版本A（多服务器）
+cd v12_skill_factory/VERSION_A_MULTI_SERVER
+bash scripts/wireguard_setup.sh <主服务器IP> <新加坡IP>
+python3 scripts/skill_factory.py <skill名称> <触发条件> <执行动作>
+```
+
+### 安全特性
+
+- ❌ 禁止创建金融/支付/社交通讯类 Skill
+- ✅ WireGuard VPN 限定只允许服务器间互访（不做代理）
+- ✅ SSH Key 双向认证，无密码
+- ✅ 全流程 Webhook 推送，透明可追溯
+
+---
 
 ## 🤝 贡献与支持者
 

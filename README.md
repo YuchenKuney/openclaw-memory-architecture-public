@@ -16,9 +16,52 @@
 
 **v12 版本核心**：AI 自进化技能工厂 + Web4.0 安全铁律体系（Bing 搜索从 0→34,600 条真实数据）
 
+- **Skill Factory**：AI 发现 Skills 不足时，自动派子 Agent 去新加坡服务器制造新技能，通过 WireGuard VPN 加密隧道同步，全程飞书卡片推送
 - **飞书审批联动**：危险操作被拦截 → 飞书卡片按钮 → toast 弹窗 → AI 继续执行
 - **StepReporter**：AI 每步操作主动汇报到飞书群（全链路透明化）
 - **Web4.0 stealth**：17 项反检测措施，绕过 Bing/Google 人机检测
+
+---
+
+## 🔥 v12 - AI 自进化技能工厂（2026-04-24）
+
+> 当 AI 发现现有 Skills 无法完成新任务时，自动派子 Agent 去新加坡服务器制造新技能，通过 VPN 加密隧道同步，全程 Webhook 推送。
+
+### 核心价值
+
+```
+用户给任务 → AI 判断 Skills 不足 → 自动制造 → VPN 同步 → 执行
+```
+
+### 两个版本
+
+| 版本 | 架构 | 适用场景 |
+|------|------|---------|
+| **版本A** | 多服务器 + WireGuard VPN | 算力分散、多Agent协作 |
+| **版本B** | 单机自动判断+创造 | 单Agent快速部署 |
+
+### 快速开始
+
+```bash
+# 版本B（单机，推荐）
+cd v12_skill_factory/VERSION_B_SINGLE_SERVER
+bash setup.sh
+python3 scripts/skill_judge.py "帮我分析英国电商市场"
+
+# 版本A（多服务器）
+cd v12_skill_factory/VERSION_A_MULTI_SERVER
+bash scripts/wireguard_setup.sh <主服务器IP> <新加坡IP>
+python3 scripts/skill_factory.py <skill名称> <触发条件> <执行动作>
+```
+
+### 安全特性
+
+- ❌ 禁止创建金融/支付/社交通讯类 Skill
+- ✅ WireGuard VPN 限定只允许服务器间互访（不做代理）
+- ✅ SSH Key 双向认证，无密码
+- ✅ 全流程 Webhook 推送，透明可追溯
+
+---
 
 ## 🔥 v11.11 Bug 修复（2026-04-23）
 
@@ -148,7 +191,6 @@ export FEISHU_GROUP_ID="oc_xxxx"
 | `interceptor.py` | 四级分层响应 + 沙箱隔离 |
 | `reply_handler.py` | **ReplyServer：接收飞书卡片回调** |
 | `notifier.py` | 飞书卡片通知 |
-| `notifier.py` | **StepReporter：AI 每步主动汇报（全链路透明化）** |
 | `auditor.py` | 主动扫描（CVE/完整性）|
 | `knowledge_graph.py` | 实体知识图谱 |
 | `context_builder.py` | 上下文构建 |
@@ -321,8 +363,13 @@ else:
 | **v8** | **反黑箱安全审计（AI行为全透明 + inotify监控 + 风险分级）** |
 | **v9** | **Web4.0 AI Agent 沙箱无头浏览器 + Cooking 注入引擎** |
 | **v10** | **反黑箱通知铁律落地 + 看门狗自动拉起子 agent** |
+| **v11** | **飞书审批联动：卡片按钮 + toast 弹窗 + wait_for_approval 阻塞** |
 | **v11.7** | **StepReporter 全链路透明化 + Web4.0 stealth 加强（Bing 搜索突破）** |
-| **v11.6** | **飞书审批联动：卡片按钮 + toast 弹窗 + wait_for_approval 阻塞** |
+| **v11.8** | **看门狗重启优化 + 进度通知链路打通** |
+| **v11.9** | **Web4.0 铁律体系全面升级（robots.txt + 审计日志 + 免责横幅）** |
+| **v11.10** | **cron-events 监控链路 bug 修复（inotify 漏掉 IN_CLOSE_WRITE）** |
+| **v11.11** | **6个Bug修复 + 脱敏处理（审批链路稳定性 + 扫描误报率降低）** |
+| **v12** | **AI 自进化技能工厂（Skill Factory）+ Web4.0 安全铁律体系** |
 
 ## 📁 目录结构
 
@@ -345,11 +392,14 @@ openclaw-memory-architecture/
 ├── scripts/
 │   ├── progress_tracker.py      # 飞书进度卡片
 │   ├── task_monitor.py          # 任务监控
-│   └── task_watchdog.py        # 看门狗
+│   ├── task_watchdog.py        # 看门狗
+│   └── skill_factory_progress.py # 飞书 Webhook 推送（v12）
+├── v12_skill_factory/          # AI 自进化技能工厂（v12）
+│   ├── VERSION_A_MULTI_SERVER/ # 多服务器架构
+│   └── VERSION_B_SINGLE_SERVER/ # 单机版
 ├── web4_*.py                   # Web4.0 视觉模块
 ├── memory/                      # 日记层
 │   └── YYYY-MM-DD.md
-├── memory/                      # 日记层
 ├── AGENTS.md                   # Agent 操作规范
 ├── ANTI_BLACKBOX.md            # 反黑箱文档
 ├── web4_IRON_RULES.md         # Web4.0 铁律（硬编码版）
@@ -377,44 +427,6 @@ openclaw-memory-architecture/
 - **Cookie 铁律**：只注入 Google preference cookies，禁止登录态 tokens
 - **robots.txt 合规**：铁律五，fetch_page 集成检查
 - **审计日志**：铁律六，IronRuler.audit_log() 全量记录
-
-## 🔧 v12 - AI 自进化技能工厂 (2026-04-24)
-
-> 当 AI 发现现有 Skills 无法完成新任务时，自动派子 Agent 去新加坡服务器制造新技能，通过 VPN 加密隧道同步，全程 Webhook 推送。
-
-### 核心价值
-
-```
-用户给任务 → AI判断Skills不足 → 自动制造 → VPN同步 → 执行
-```
-
-### 两个版本
-
-| 版本 | 架构 | 适用场景 |
-|------|------|---------|
-| **版本A** | 多服务器 + WireGuard VPN | 算力分散、多Agent协作 |
-| **版本B** | 单机自动判断+创造 | 单Agent快速部署 |
-
-### 快速开始
-
-```bash
-# 版本B（单机，推荐）
-cd v12_skill_factory/VERSION_B_SINGLE_SERVER
-bash setup.sh
-python3 scripts/skill_judge.py "帮我分析英国电商市场"
-
-# 版本A（多服务器）
-cd v12_skill_factory/VERSION_A_MULTI_SERVER
-bash scripts/wireguard_setup.sh <主服务器IP> <新加坡IP>
-python3 scripts/skill_factory.py <skill名称> <触发条件> <执行动作>
-```
-
-### 安全特性
-
-- ❌ 禁止创建金融/支付/社交通讯类 Skill
-- ✅ WireGuard VPN 限定只允许服务器间互访（不做代理）
-- ✅ SSH Key 双向认证，无密码
-- ✅ 全流程 Webhook 推送，透明可追溯
 
 ---
 

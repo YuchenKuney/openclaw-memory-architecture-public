@@ -41,7 +41,7 @@ DEFAULT_CONFIG = {
     "audit_log": "/root/.openclaw/workspace/clawkeeper/audit.log",
     
     # 飞书 Webhook（坤哥群）
-    "feishu_webhook": "https://open.feishu.cn/open-apis/bot/v2/hook/375a8be1-9e3e-4758-a78b-e775fd4d32a1",
+    "feishu_webhook": "YOUR_FEISHU_WEBHOOK_URL",
     
     # 是否启用
     "enabled": True,

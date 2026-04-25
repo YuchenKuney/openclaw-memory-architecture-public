@@ -7,7 +7,7 @@
 #   PUSH_TASK_ID   - 任务ID前缀，默认 T-YYYYMMDD-HHMMSS
 
 # 坤哥飞书群 Webhook（已配置）
-WEBHOOK="${FEISHU_WEBHOOK:-https://open.feishu.cn/open-apis/bot/v2/hook/375a8be1-9e3e-4758-a78b-e775fd4d32a1}"
+WEBHOOK="${FEISHU_WEBHOOK:-YOUR_FEISHU_WEBHOOK_URL}"
 
 TASK_ID="${1:-}"
 STEP_ID="${2:-}"

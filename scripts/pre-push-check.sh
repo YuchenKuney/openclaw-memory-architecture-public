@@ -37,6 +37,7 @@ PATTERNS=(
     "oc_[0-9a-f]\{32\}"              # 飞书 Chat ID
     "LnhA[A-Za-z0-9_-]\{30,\}"       # 飞书 App Secret
     "[0-9a-f]\{32\}\.com"            # 可能的密钥格式
+    "hook/[0-9a-f-]\{36\}"           # 飞书 Webhook URL
 )
 
 ISSUES=0

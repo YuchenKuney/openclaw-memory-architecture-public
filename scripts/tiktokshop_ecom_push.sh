@@ -14,7 +14,7 @@ $PUSH "$TASK_ID" "S1" "running" "🔍 搜索欧洲 TikTok Shop 爆款..." "10"
 python3 << 'PYEOF'
 import urllib.request, urllib.parse, json, re, time
 
-WEBHOOK = "${FEISHU_WEBHOOK:-https://open.feishu.cn/open-apis/bot/v2/hook/375a8be1-9e3e-4758-a78b-e775fd4d32a1}"
+WEBHOOK = "${FEISHU_WEBHOOK:-YOUR_FEISHU_WEBHOOK_URL}"
 TRANSLATE_URL = "https://translate.googleapis.com/translate_a/single?client=gtx&sl=en&tl=zh-CN&dt=t"
 
 def translate(text):

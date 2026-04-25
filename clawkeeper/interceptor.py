@@ -258,7 +258,7 @@ class Interceptor:
         # receive_id_type: chat_id 表示群ID
         send_url = "https://open.feishu.cn/open-apis/im/v1/messages?receive_id_type=chat_id"
         # 群ID用 group_id
-        group_id = os.environ.get("FEISHU_GROUP_ID", "oc_0533b03e077fedca255c4d2c6717deea")
+        group_id = os.environ.get("FEISHU_GROUP_ID", "YOUR_GROUP_ID")
         # content 是卡片的 JSON 字符串（不是 {"card": card}）
         msg_body = json.dumps({
             "receive_id": group_id,

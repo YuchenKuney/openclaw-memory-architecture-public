@@ -15,7 +15,7 @@ from datetime import datetime
 from pathlib import Path
 
 STATE_FILE = Path("/root/.openclaw/workspace/.task_state.json")
-WEBHOOK = "https://open.feishu.cn/open-apis/bot/v2/hook/7a939580-e987-4571-a142-f58528cf71ec"
+WEBHOOK = "YOUR_FEISHU_WEBHOOK_URL"
 
 
 def read_state():

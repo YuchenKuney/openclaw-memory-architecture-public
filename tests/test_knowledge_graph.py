@@ -171,7 +171,7 @@ class TestKnowledgeGraph(unittest.TestCase):
 - scripts/progress_tracker.py
 
 ## 飞书通知
-webhook 已配置到 oc_0533b03e077fedca255c4d2c6717deea 群组
+webhook 已配置到 YOUR_GROUP_ID 群组
 """)
 
         n = kg.populate_from_memory(str(memory_dir))

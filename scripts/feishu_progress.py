@@ -12,7 +12,7 @@ import json
 import urllib.request
 from datetime import datetime
 
-WEBHOOK = "https://open.feishu.cn/open-apis/bot/v2/hook/375a8be1-9e3e-4758-a78b-e775fd4d32a1"
+WEBHOOK = "YOUR_FEISHU_WEBHOOK_URL"
 
 TEMPLATE_COLORS = {
     "blue": "blue",     # 进行中

@@ -32,7 +32,7 @@ PROGRESS_FILE = PROGRESS_DIR / "current_task.json"  # 备用兜底路径
 NOTIFY_STATE_FILE = WORKSPACE / ".monitor_state.json"
 FEISHU_WEBHOOK = os.environ.get(
     "FEISHU_WEBHOOK",
-    "https://open.feishu.cn/open-apis/bot/v2/hook/7a939580-e987-4571-a142-f58528cf71ec"
+    "YOUR_FEISHU_WEBHOOK_URL"
 )
 
 

@@ -19,7 +19,7 @@ try:
 except ImportError:
     # 如果 config_loader 不存在，使用默认值
     def get_webhook_url():
-        return os.environ.get("FEISHU_WEBHOOK", "https://open.feishu.cn/open-apis/bot/v2/hook/7a939580-e987-4571-a142-f58528cf71ec")
+        return os.environ.get("FEISHU_WEBHOOK", "YOUR_FEISHU_WEBHOOK_URL")
     def get_user_id():
         return os.environ.get("KUNGE_ID", "")
     def get_group_id():
@@ -307,7 +307,7 @@ class FeishuNotifier:
                 "elements": [{"tag": "markdown", "content": "\n".join(content_parts)}]
             }
         }
-        group_webhook = os.environ.get("FEISHU_GROUP_WEBHOOK", "https://open.feishu.cn/open-apis/bot/v2/hook/7a939580-e987-4571-a142-f58528cf71ec")
+        group_webhook = os.environ.get("FEISHU_GROUP_WEBHOOK", "YOUR_FEISHU_WEBHOOK_URL")
         try:
             data = json.dumps(card, ensure_ascii=False).encode("utf-8")
             req = urllib.request.Request(group_webhook, data=data, headers={"Content-Type": "application/json"})
@@ -347,7 +347,7 @@ class StepReporter:
     def __init__(self, group_webhook: str = None):
         self.group_webhook = group_webhook or os.environ.get(
             "FEISHU_GROUP_WEBHOOK",
-            "https://open.feishu.cn/open-apis/bot/v2/hook/7a939580-e987-4571-a142-f58528cf71ec"
+            "YOUR_FEISHU_WEBHOOK_URL"
         )
         self._current_task = None  # 当前任务
 

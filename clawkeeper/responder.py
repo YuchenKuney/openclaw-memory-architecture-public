@@ -13,7 +13,7 @@ from datetime import datetime, timedelta
 from pathlib import Path
 
 # 坤哥飞书 chat ID
-KUNGE_ID = "ou_c079cf9f93da3030aacb081900d55a8e"
+KUNGE_ID = "YOUR_KUNGE_ID"
 
 # 允许的指令
 ALLOWED_COMMANDS = {"允许", "拒绝", "allow", "reject", "同意", "cancel"}
@@ -176,7 +176,7 @@ class FeishuMessageListener:
         self.running = True
         
         # 坤哥群的 container_id
-        container_id = "oc_0533b03e077fedca255c4d2c6717deea"
+        container_id = "YOUR_GROUP_ID"
         
         while self.running:
             try:

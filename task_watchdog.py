@@ -26,6 +26,28 @@ from pathlib import Path
 from datetime import datetime
 from typing import Optional, Dict, List
 
+# ============ 单例互斥锁（防止多个实例同时运行）============
+WATCHDOG_PID_FILE = Path("/root/.openclaw/workspace/.watchdog.pid")
+
+def _is_watchdog_alive(pid: int) -> bool:
+    try:
+        os.kill(pid, 0)
+        return True
+    except OSError:
+        return False
+
+def _ensure_single_instance():
+    """确保只有一个 watchdog 实例运行"""
+    if WATCHDOG_PID_FILE.exists():
+        try:
+            old_pid = int(WATCHDOG_PID_FILE.read_text().strip())
+            if old_pid != os.getpid() and _is_watchdog_alive(old_pid):
+                print(f"[Watchdog] 另一个实例已在运行 PID={old_pid}，退出")
+                sys.exit(0)
+        except (ValueError, OSError):
+            pass
+    WATCHDOG_PID_FILE.write_text(str(os.getpid()))
+
 WORKSPACE = Path("/root/.openclaw/workspace")
 # 要监控的脚本列表（看门狗都会自动拉起）
 MONITOR_SCRIPTS = {
@@ -283,6 +305,7 @@ def check_memory_integrity() -> dict:
 
 def watchdog_loop(daemon: bool = False, once: bool = False):
     """看门狗主循环"""
+    _ensure_single_instance()
     print(f"[Watchdog] 🚀 看门狗启动 PID={os.getpid()} {'(daemon)' if daemon else ''}")
     send_simple_msg("🐕 看门狗已启动", "INFO")
 

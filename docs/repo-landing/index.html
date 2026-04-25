@@ -1,0 +1,545 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>OpenClaw Memory Architecture | AI Agent 自进化系统</title>
+  <meta name="description" content="AI Agent 自进化系统 — 记忆主权架构 + 反黑箱透明化 + Web4.0 安全铁律">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    :root {
+      --bg-primary: #0a0a0f;
+      --bg-secondary: #12121a;
+      --bg-card: #1a1a25;
+      --accent-blue: #3b82f6;
+      --accent-purple: #8b5cf6;
+      --accent-cyan: #06b6d4;
+      --accent-green: #10b981;
+      --accent-orange: #f59e0b;
+      --accent-red: #ef4444;
+      --text-primary: #f8fafc;
+      --text-secondary: #94a3b8;
+      --text-muted: #64748b;
+      --border: rgba(255,255,255,0.08);
+    }
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      background: var(--bg-primary);
+      color: var(--text-primary);
+      line-height: 1.6;
+      overflow-x: hidden;
+    }
+    a { color: var(--accent-blue); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    /* Nav */
+    nav {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      z-index: 100;
+      padding: 1rem 2rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: rgba(10,10,15,0.85);
+      backdrop-filter: blur(16px);
+      border-bottom: 1px solid var(--border);
+    }
+    .nav-brand {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      font-weight: 700;
+      font-size: 1.1rem;
+    }
+    .nav-brand .logo { font-size: 1.4rem; }
+    .nav-links { display: flex; gap: 1.5rem; align-items: center; }
+    .nav-links a { color: var(--text-secondary); font-size: 0.9rem; font-weight: 500; transition: color 0.2s; }
+    .nav-links a:hover { color: var(--text-primary); text-decoration: none; }
+    .btn-github {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.5rem 1rem;
+      background: var(--text-primary);
+      color: var(--bg-primary);
+      border-radius: 8px;
+      font-weight: 600;
+      font-size: 0.9rem;
+      transition: opacity 0.2s;
+    }
+    .btn-github:hover { opacity: 0.85; text-decoration: none; }
+
+    /* Hero */
+    .hero {
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      padding: 8rem 2rem 4rem;
+      position: relative;
+      overflow: hidden;
+    }
+    .hero::before {
+      content: '';
+      position: absolute;
+      top: -50%;
+      left: -50%;
+      width: 200%;
+      height: 200%;
+      background: radial-gradient(ellipse at 50% 50%, rgba(59,130,246,0.12) 0%, transparent 60%),
+                  radial-gradient(ellipse at 80% 20%, rgba(139,92,246,0.08) 0%, transparent 50%),
+                  radial-gradient(ellipse at 20% 80%, rgba(6,182,212,0.06) 0%, transparent 50%);
+      z-index: 0;
+    }
+    .hero > * { position: relative; z-index: 1; }
+    .hero-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.4rem 1rem;
+      background: rgba(59,130,246,0.15);
+      border: 1px solid rgba(59,130,246,0.3);
+      border-radius: 100px;
+      font-size: 0.85rem;
+      color: var(--accent-blue);
+      margin-bottom: 2rem;
+    }
+    .hero h1 {
+      font-size: clamp(2.5rem, 6vw, 4.5rem);
+      font-weight: 800;
+      line-height: 1.1;
+      margin-bottom: 1.5rem;
+      background: linear-gradient(135deg, #fff 0%, #94a3b8 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    .hero h1 span {
+      background: linear-gradient(135deg, var(--accent-blue) 0%, var(--accent-purple) 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    .hero-desc {
+      max-width: 640px;
+      font-size: 1.2rem;
+      color: var(--text-secondary);
+      margin-bottom: 2.5rem;
+      line-height: 1.7;
+    }
+    .hero-actions {
+      display: flex;
+      gap: 1rem;
+      flex-wrap: wrap;
+      justify-content: center;
+      margin-bottom: 3rem;
+    }
+    .btn-primary {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.75rem 1.75rem;
+      background: linear-gradient(135deg, var(--accent-blue), var(--accent-purple));
+      color: #fff;
+      border-radius: 10px;
+      font-weight: 600;
+      font-size: 1rem;
+      transition: opacity 0.2s, transform 0.2s;
+    }
+    .btn-primary:hover { opacity: 0.9; transform: translateY(-1px); text-decoration: none; }
+    .btn-secondary {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.75rem 1.75rem;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      color: var(--text-primary);
+      border-radius: 10px;
+      font-weight: 600;
+      font-size: 1rem;
+      transition: background 0.2s;
+    }
+    .btn-secondary:hover { background: #22222e; text-decoration: none; }
+
+    /* GitHub Stats */
+    .github-stats {
+      display: flex;
+      gap: 2rem;
+      flex-wrap: wrap;
+      justify-content: center;
+      margin-bottom: 3rem;
+    }
+    .stat-item {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      color: var(--text-muted);
+      font-size: 0.95rem;
+    }
+    .stat-item .icon { font-size: 1.2rem; }
+    .stat-item .count { color: var(--text-primary); font-weight: 700; }
+
+    /* Section */
+    section { padding: 5rem 2rem; max-width: 1200px; margin: 0 auto; }
+    .section-label {
+      display: inline-block;
+      font-size: 0.8rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--accent-blue);
+      margin-bottom: 1rem;
+    }
+    .section-title {
+      font-size: clamp(1.8rem, 4vw, 2.5rem);
+      font-weight: 700;
+      margin-bottom: 1rem;
+    }
+    .section-desc {
+      color: var(--text-secondary);
+      font-size: 1.05rem;
+      max-width: 600px;
+      margin-bottom: 3rem;
+    }
+
+    /* Feature Cards */
+    .features {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+      gap: 1.5rem;
+    }
+    .feature-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 2rem;
+      transition: border-color 0.2s, transform 0.2s;
+    }
+    .feature-card:hover {
+      border-color: rgba(59,130,246,0.3);
+      transform: translateY(-2px);
+    }
+    .feature-icon {
+      width: 48px;
+      height: 48px;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.5rem;
+      margin-bottom: 1.25rem;
+    }
+    .feature-icon.blue { background: rgba(59,130,246,0.15); }
+    .feature-icon.purple { background: rgba(139,92,246,0.15); }
+    .feature-icon.cyan { background: rgba(6,182,212,0.15); }
+    .feature-icon.green { background: rgba(16,185,129,0.15); }
+    .feature-icon.orange { background: rgba(245,158,11,0.15); }
+    .feature-card h3 { font-size: 1.15rem; font-weight: 700; margin-bottom: 0.75rem; }
+    .feature-card p { color: var(--text-secondary); font-size: 0.95rem; line-height: 1.65; }
+    .feature-tag {
+      display: inline-block;
+      margin-top: 1rem;
+      padding: 0.25rem 0.75rem;
+      border-radius: 100px;
+      font-size: 0.75rem;
+      font-weight: 600;
+    }
+    .tag-blue { background: rgba(59,130,246,0.15); color: var(--accent-blue); }
+    .tag-purple { background: rgba(139,92,246,0.15); color: var(--accent-purple); }
+    .tag-cyan { background: rgba(6,182,212,0.15); color: var(--accent-cyan); }
+
+    /* Architecture */
+    .arch-section { background: var(--bg-secondary); padding: 5rem 2rem; }
+    .arch-inner { max-width: 1200px; margin: 0 auto; }
+    .arch-diagram {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 2rem;
+      font-family: 'Courier New', monospace;
+      font-size: 0.85rem;
+      color: var(--text-secondary);
+      overflow-x: auto;
+      white-space: pre;
+      line-height: 1.8;
+    }
+    .arch-diagram .layer { color: var(--text-muted); }
+    .arch-diagram .title { color: var(--accent-blue); font-weight: bold; }
+    .arch-diagram .sub { color: var(--accent-purple); }
+
+    /* Tech Stack */
+    .stack-grid {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 1rem;
+      margin-top: 2rem;
+    }
+    .stack-item {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.5rem 1rem;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      font-size: 0.9rem;
+      color: var(--text-secondary);
+    }
+    .stack-item .dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+    }
+
+    /* Version Timeline */
+    .timeline {
+      border-left: 2px solid var(--border);
+      padding-left: 2rem;
+      margin-top: 2rem;
+    }
+    .timeline-item {
+      position: relative;
+      padding-bottom: 2rem;
+    }
+    .timeline-item::before {
+      content: '';
+      position: absolute;
+      left: -2.4rem;
+      top: 0.35rem;
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      background: var(--accent-blue);
+      border: 2px solid var(--bg-primary);
+    }
+    .timeline-item h4 { font-size: 1rem; font-weight: 700; margin-bottom: 0.25rem; }
+    .timeline-item .ver { color: var(--accent-blue); font-size: 0.85rem; font-weight: 600; margin-bottom: 0.5rem; }
+    .timeline-item p { color: var(--text-secondary); font-size: 0.9rem; }
+
+    /* Footer */
+    footer {
+      border-top: 1px solid var(--border);
+      padding: 3rem 2rem;
+      text-align: center;
+      color: var(--text-muted);
+      font-size: 0.9rem;
+    }
+    footer .footer-links { display: flex; gap: 1.5rem; justify-content: center; margin-bottom: 1rem; }
+    footer .footer-links a { color: var(--text-secondary); }
+    footer .footer-links a:hover { color: var(--text-primary); }
+
+    @media (max-width: 640px) {
+      nav { padding: 1rem; }
+      .nav-links { gap: 0.75rem; }
+      .hero { padding: 7rem 1rem 3rem; }
+      .features { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- Nav -->
+<nav>
+  <div class="nav-brand">
+    <span class="logo">🦐</span>
+    <span>OpenClaw Memory</span>
+  </div>
+  <div class="nav-links">
+    <a href="#features">核心功能</a>
+    <a href="#architecture">架构</a>
+    <a href="#versions">版本</a>
+    <a href="https://github.com/YuchenKuney/openclaw-memory-architecture-public" target="_blank" class="btn-github">
+      <svg height="16" width="16" viewBox="0 0 16 16" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
+      GitHub
+    </a>
+  </div>
+</nav>
+
+<!-- Hero -->
+<div class="hero">
+  <div class="hero-badge">
+    <span>🏆</span> OpenClaw 二次架构扩展 · 比赛项目
+  </div>
+  <h1>AI Agent <span>自进化</span> 系统</h1>
+  <p class="hero-desc">
+    记忆主权架构 + 反黑箱透明化 + Web4.0 安全铁律。AI 每一步操作都对用户可见，技能不足时自动制造新技能。
+  </p>
+  <div class="hero-actions">
+    <a href="https://github.com/YuchenKuney/openclaw-memory-architecture-public" target="_blank" class="btn-primary">
+      <svg height="18" width="18" viewBox="0 0 16 16" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
+      查看源码
+    </a>
+    <a href="https://github.com/YuchenKuney/openclaw-memory-architecture-public/blob/main/README.md" target="_blank" class="btn-secondary">
+      📖 完整文档
+    </a>
+  </div>
+
+  <!-- GitHub Stats (fetched via JS) -->
+  <div class="github-stats" id="gh-stats">
+    <div class="stat-item"><span class="icon">⭐</span> <span class="count" id="stars">—</span> Stars</div>
+    <div class="stat-item"><span class="icon">🍴</span> <span class="count" id="forks">—</span> Forks</div>
+    <div class="stat-item"><span class="icon">📂</span> <span class="count">v12</span> Latest</div>
+    <div class="stat-item"><span class="icon">🔧</span> <span class="count">MIT</span> License</div>
+  </div>
+</div>
+
+<!-- Features -->
+<section id="features">
+  <span class="section-label">✨ 核心亮点</span>
+  <h2 class="section-title">三大核心能力</h2>
+  <p class="section-desc">每个功能都为 AI Agent 的可控性、透明性和自主进化能力而设计。</p>
+
+  <div class="features">
+    <div class="feature-card">
+      <div class="feature-icon blue">🧬</div>
+      <h3>AI 自进化技能工厂</h3>
+      <p>AI 发现自身技能不足时，自动制造新 Skill。无需人工介入，SKILL.md + 执行脚本全自动生成并动态加载。</p>
+      <span class="feature-tag tag-blue">Skill Factory v12</span>
+    </div>
+
+    <div class="feature-card">
+      <div class="feature-icon purple">🔍</div>
+      <h3>反黑箱透明化</h3>
+      <p>AI 每一步操作主动汇报到飞书群，不接受静默执行。四级透明化：Webhook卡片 / Task Schema / inotify监控 / Watchdog心跳。</p>
+      <span class="feature-tag tag-purple">全链路可见</span>
+    </div>
+
+    <div class="feature-card">
+      <div class="feature-icon cyan">🛡️</div>
+      <h3>Web4.0 安全铁律</h3>
+      <p>六条铁律写死在代码里：Cookie只读、禁止注册/登录、敏感页面拦截、速率限制、robots.txt合规、审计日志全量。</p>
+      <span class="feature-tag tag-cyan">安全沙箱</span>
+    </div>
+
+    <div class="feature-card">
+      <div class="feature-icon green">📊</div>
+      <h3>Token 节省 94%</h3>
+      <p>对话历史定期蒸馏压缩到 MEMORY.md，daily日记层不进主上下文。实测每天 ~2.4K token vs 全量累积 ~300K token。</p>
+      <span class="feature-tag tag-blue">成本优化</span>
+    </div>
+
+    <div class="feature-card">
+      <div class="feature-icon orange">⚡</div>
+      <h3>看门狗自动拉起</h3>
+      <p>子 Agent 进程崩溃自动检测并重启，30秒心跳机制，频繁重启自动告警。进程存活率 99.9%。</p>
+      <span class="feature-tag tag-purple">进程守护</span>
+    </div>
+
+    <div class="feature-card">
+      <div class="feature-icon green">🔄</div>
+      <h3>飞书审批联动</h3>
+      <p>危险操作拦截 → 飞书卡片按钮审批 → toast弹窗 → AI继续执行或阻断。两种模式：长连接轮询 / 回调地址。</p>
+      <span class="feature-tag tag-cyan">人机协作</span>
+    </div>
+  </div>
+</section>
+
+<!-- Architecture -->
+<div class="arch-section">
+  <div class="arch-inner">
+    <span class="section-label">🏗️ 系统架构</span>
+    <h2 class="section-title">模块清晰 · 分层解耦</h2>
+    <p class="section-desc">通信层 → Leader Agent → 记忆系统/安全审计 → 监控层 → Webhook 推送</p>
+
+    <div class="arch-diagram">
+<span class="title">┌─────────────────────────────────────────────────────────────┐
+│                     通信层（飞书 / Telegram）                  │
+└──────────────────────────┬──────────────────────────────────┘
+                           │
+┌──────────────────────────▼──────────────────────────────────┐
+│                    Leader Agent                               │
+│         意图理解 · 任务分解 · 路由分发 · 质量把控              │
+└──────┬──────────────┬──────────────┬─────────────────────────┘
+       │              │              │
+<span class="sub">┌──────▼─────┐  ┌─────▼─────┐  ┌─────▼──────┐
+│Skill Factory│  │  记忆系统  │  │  安全审计  │
+│ AI自进化技能│  │MEMORY.md │  │ clawkeeper │
+└─────────────┘  └──────────┘  └────────────┘</span>
+                           │
+        ┌──────────────────┼──────────────────┐
+        │                  │                  │
+  ┌─────▼─────┐     ┌─────▼─────┐     ┌─────▼──────┐
+  │cron任务监控│     │ inotify   │     │  Webhook   │
+  │task_watchdog│    │文件监控   │     │飞书卡片推送│
+  └───────────┘     └───────────┘     └────────────┘</div>
+
+    <h3 style="margin-top: 3rem; font-size: 1.2rem; font-weight: 600;">技术栈</h3>
+    <div class="stack-grid">
+      <div class="stack-item"><div class="dot" style="background:#3b82f6"></div> OpenClaw Agent</div>
+      <div class="stack-item"><div class="dot" style="background:#10b981"></div> Python 3</div>
+      <div class="stack-item"><div class="dot" style="background:#f59e0b"></div> inotify 文件监控</div>
+      <div class="stack-item"><div class="dot" style="background:#8b5cf6"></div> Webhook 推送</div>
+      <div class="stack-item"><div class="dot" style="background:#ef4444"></div> Playwright Stealth</div>
+      <div class="stack-item"><div class="dot" style="background:#06b6d4"></div> LangGraph</div>
+      <div class="stack-item"><div class="dot" style="background:#64748b"></div> SQLite 状态持久化</div>
+      <div class="stack-item"><div class="dot" style="background:#3b82f6"></div> WireGuard VPN</div>
+    </div>
+  </div>
+</div>
+
+<!-- Versions -->
+<section id="versions">
+  <span class="section-label">📈 版本演进</span>
+  <h2 class="section-title">从记忆系统到自进化架构</h2>
+  <p class="section-desc">每个版本都是一次架构升级，从基础 CRUD 到 AI 自主制造技能。</p>
+
+  <div class="timeline">
+    <div class="timeline-item">
+      <div class="ver">v1 - v6</div>
+      <h4>基础记忆 + 多智能体协作</h4>
+      <p>记忆 CRUD、冲突检测、图检索、反思引擎。</p>
+    </div>
+    <div class="timeline-item">
+      <div class="ver">v7 - v8</div>
+      <h4>主动进度反馈 + 反黑箱安全审计</h4>
+      <p>任务状态结构化、AI行为全透明、inotify监控、风险分级。</p>
+    </div>
+    <div class="timeline-item">
+      <div class="ver">v9</div>
+      <h4>Web4.0 AI Agent 沙箱无头浏览器</h4>
+      <p>Playwright stealth、17项反检测措施、Cooking注入引擎。</p>
+    </div>
+    <div class="timeline-item">
+      <div class="ver">v10 - v11</div>
+      <h4>反黑箱通知铁律落地 + 看门狗 + Stealth加强</h4>
+      <p>Webhook全链路推送、进程自动拉起、Bing搜索突破。</p>
+    </div>
+    <div class="timeline-item">
+      <div class="ver">v12 ⭐</div>
+      <h4>Skill Factory 完整实现 + AI 自进化</h4>
+      <p>AI自动判断技能缺口并制造新Skill，版本A多服务器版 / 版本B单机版。</p>
+    </div>
+  </div>
+</section>
+
+<!-- Footer -->
+<footer>
+  <div class="footer-links">
+    <a href="https://github.com/YuchenKuney/openclaw-memory-architecture-public" target="_blank">GitHub</a>
+    <a href="https://github.com/YuchenKuney/openclaw-memory-architecture-public/blob/main/README.md" target="_blank">Docs</a>
+    <a href="https://discord.com/invite/clawd" target="_blank">Discord</a>
+    <a href="https://docs.openclaw.ai" target="_blank">OpenClaw Docs</a>
+  </div>
+  <p>OpenClaw Memory Architecture · v12 · MIT License</p>
+  <p style="margin-top: 0.5rem; color: #475569;">Built with 🦐 by 坤哥 · 参赛项目 2026</p>
+</footer>
+
+<!-- GitHub API -->
+<script>
+  fetch('https://api.github.com/repos/YuchenKuney/openclaw-memory-architecture-public')
+    .then(r => r.json())
+    .then(data => {
+      document.getElementById('stars').textContent = data.stargazers_count || '0';
+      document.getElementById('forks').textContent = data.forks_count || '0';
+    })
+    .catch(() => {});
+</script>
+
+</body>
+</html>

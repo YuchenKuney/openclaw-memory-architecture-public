@@ -714,6 +714,9 @@ class RiskDetector:
                         semantic_result = fut.result(timeout=20)
                     if semantic_result and semantic_result.risk_level > regex_level:
                         return self._build_action(event_info, semantic_result.risk_level, semantic_result, mode)
+            except RuntimeError:
+                # 线程没有事件循环（inotify监控线程等），静默跳过异步判断
+                pass
             except Exception as e:
                 print(f"[Detector] 异步语义判断失败: {e}，使用正则结果")
 

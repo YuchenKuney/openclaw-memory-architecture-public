@@ -269,3 +269,16 @@ class DemoRunner:
             f.writelines(lines)
 
         print(f"\n  📄 完整记录已保存到: {path}")
+
+
+def run_scenario(scenario):
+    """运行电商记忆演进场景"""
+    runner = DemoRunner()
+    print(f"\n{'=' * 56}")
+    print(f"  🛒 电商记忆演进场景开始（共 {len(scenario)} 步）")
+    print(f"{'=' * 56}")
+    for step_data in scenario:
+        runner.run_step(step_data)
+    runner.save_log()
+    print(f"\n✅ 场景运行完毕")
+    return runner

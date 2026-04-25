@@ -57,10 +57,8 @@ log "Python 版本: $PY_VERSION"
 # =============================================================================
 if [ ! -f "demo.py" ] && [ ! -f "AGENTS.md" ]; then
     log "检测到未在仓库目录，正在克隆..."
-    read -p "请输入仓库路径（如 /root/openclaw-memory）: " REPO_PATH
-    if [ -z "$REPO_PATH" ]; then
-        REPO_PATH="/root/openclaw-memory"
-    fi
+    read -p "请输入仓库路径（如 /root/openclaw-memory，留空默认 /root/openclaw-memory）: " REPO_PATH
+    REPO_PATH=${REPO_PATH:-/root/openclaw-memory}
     
     if [ -d "$REPO_PATH" ]; then
         warn "目录已存在，将进入现有目录"
@@ -74,23 +72,62 @@ WORKSPACE=$(pwd)
 ok "工作目录: $WORKSPACE"
 
 # =============================================================================
-# 3. 安装依赖
+# 3. 创建虚拟环境（推荐）
+# =============================================================================
+log "检查虚拟环境..."
+
+USE_VENV=false
+VENV_PIP=""
+VENV_PYTHON=""
+
+if [ -d "venv" ]; then
+    warn "检测到已有 venv 目录，将使用现有虚拟环境"
+    USE_VENV=true
+elif python3 -m venv --help &>/dev/null; then
+    echo ""
+    log "是否创建虚拟环境？（推荐，避免污染系统 Python）"
+    read -p "创建虚拟环境 venv/ ？[Y/n]: " CREATE_VENV
+    CREATE_VENV=${CREATE_VENV:-Y}
+    if [[ "$CREATE_VENV" =~ ^[Yy]$ ]] || [[ -z "$CREATE_VENV" ]]; then
+        python3 -m venv venv
+        ok "虚拟环境已创建: venv/"
+        USE_VENV=true
+    else
+        warn "跳过虚拟环境，将尝试全局安装"
+    fi
+else
+    warn "系统不支持 python3 -m venv，将尝试直接安装"
+fi
+
+# 确定 pip 和 python 命令
+if $USE_VENV; then
+    VENV_PIP="venv/bin/pip3"
+    VENV_PYTHON="venv/bin/python3"
+    PIP="$VENV_PIP"
+    PYTHON="$VENV_PYTHON"
+    ok "使用虚拟环境"
+else
+    PIP="pip3"
+    PYTHON="python3"
+fi
+
+# =============================================================================
+# 4. 安装依赖
 # =============================================================================
 log "安装 Python 依赖..."
 
-# 核心依赖
-pip3 install --upgrade pip -q
+$PIP install --upgrade pip -q
 
 # OpenClaw（核心框架）
-pip3 install openclaw -q 2>/dev/null || warn "OpenClaw 安装失败，请参考 https://docs.openclaw.ai"
+$PIP install openclaw -q 2>/dev/null || warn "OpenClaw 安装失败，请参考 https://docs.openclaw.ai"
 
 # 核心依赖
-pip3 install pydantic aiohttp inotify-tools watchdog -q 2>/dev/null || true
+$PIP install pydantic aiohttp watchdog -q 2>/dev/null || true
 
 ok "依赖安装完成"
 
 # =============================================================================
-# 4. 初始化目录结构
+# 5. 初始化目录结构
 # =============================================================================
 log "初始化目录结构..."
 
@@ -103,7 +140,7 @@ mkdir -p logs
 ok "目录初始化完成"
 
 # =============================================================================
-# 5. 飞书配置（可选）
+# 6. 飞书配置（可选）
 # =============================================================================
 echo ""
 echo "───────────────────────────────────────────────────────"
@@ -123,12 +160,12 @@ else
 fi
 
 # =============================================================================
-# 6. 设置定时任务
+# 7. 设置定时任务
 # =============================================================================
 log "设置定时任务..."
 
-# 读取现有 crontab
-CRON_TEMP=$(mktemp)
+# 获取 Python 路径（用于 cron）
+CRON_PYTHON=$(which python3)
 
 # 添加任务（如果不存在）
 add_cron() {
@@ -145,10 +182,10 @@ add_cron() {
 }
 
 # 每日记忆蒸馏（18:30）
-add_cron "30 18 * * *" "cd $WORKSPACE && python3 scripts/log_distiller.py >> logs/distill.log 2>&1" "记忆蒸馏"
+add_cron "30 18 * * *" "cd $WORKSPACE && $CRON_PYTHON scripts/log_distiller.py >> logs/distill.log 2>&1" "记忆蒸馏"
 
 # 看门狗（开机自启）
-WATCHDOG_CRON="@reboot cd $WORKSPACE && python3 task_watchdog.py --daemon >> logs/watchdog.log 2>&1"
+WATCHDOG_CRON="@reboot cd $WORKSPACE && $CRON_PYTHON task_watchdog.py --daemon >> logs/watchdog.log 2>&1"
 if ! crontab -l 2>/dev/null | grep -q "task_watchdog.py"; then
     (crontab -l 2>/dev/null; echo "$WATCHDOG_CRON") | crontab -
     ok "添加看门狗自启动"
@@ -157,14 +194,14 @@ fi
 ok "定时任务设置完成"
 
 # =============================================================================
-# 7. 启动看门狗
+# 8. 启动看门狗
 # =============================================================================
 log "启动看门狗守护进程..."
 
 if pgrep -f "task_watchdog.py" > /dev/null; then
     warn "看门狗已在运行"
 else
-    nohup python3 task_watchdog.py --daemon > logs/watchdog.log 2>&1 &
+    nohup $PYTHON task_watchdog.py --daemon > logs/watchdog.log 2>&1 &
     sleep 2
     if pgrep -f "task_watchdog.py" > /dev/null; then
         ok "看门狗已启动"
@@ -174,7 +211,7 @@ else
 fi
 
 # =============================================================================
-# 8. 完成
+# 9. 完成
 # =============================================================================
 echo ""
 echo "═══════════════════════════════════════════════════════"
@@ -182,8 +219,14 @@ echo "  ✅ 安装完成！"
 echo "═══════════════════════════════════════════════════════"
 echo ""
 echo "  📂 工作目录: $WORKSPACE"
+if $USE_VENV; then
+echo "  🐍 虚拟环境: $WORKSPACE/venv/"
+fi
 echo ""
 echo "  🚀 快速开始："
+if $USE_VENV; then
+echo "     source venv/bin/activate  # 激活虚拟环境"
+fi
 echo "     python3 demo.py --demo ecommerce --scenario   # 电商记忆演进"
 echo "     python3 demo.py --demo 1                      # 长连接审批 Demo"
 echo "     python3 demo.py --demo 2                      # 回调地址审批 Demo"
@@ -194,6 +237,9 @@ echo "     cat ANTI_BLACKBOX.md    # 反黑箱机制说明"
 echo "     cat SECURITY.md         # 安全政策"
 echo ""
 echo "  🛠️  常用命令："
+if $USE_VENV; then
+echo "     source venv/bin/activate  # 激活虚拟环境"
+fi
 echo "     openclaw status         # 查看 OpenClaw 状态"
 echo "     openclaw gateway start  # 启动网关"
 echo "     python3 task_watchdog.py --daemon  # 看门狗后台运行"

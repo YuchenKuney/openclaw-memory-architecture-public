@@ -132,9 +132,22 @@ openclaw-memory-architecture/
 git clone https://github.com/YuchenKuney/openclaw-memory-architecture-public.git
 cd openclaw-memory-architecture-public
 
+# 运行 Demo
+python3 demo.py --demo 1        # Demo 1：长连接审批
+python3 demo.py --demo 2        # Demo 2：回调地址审批
+python3 demo.py --demo ecommerce --scenario  # 电商记忆演进
+
 # 查看 Skill Factory 独立仓库（推荐）
 cd skill-factory-repo/skill_factory_standalone
 ```
+
+### Demo 审批系统
+
+**Demo 1（长连接）**：每5秒轮询飞书群消息，检测 `@审批机器人` + 文字命令。简单但有5秒延迟。
+
+**Demo 2（回调地址）**：公网 HTTP 服务器接收飞书卡片按钮回调，实时弹窗 + toast。需公网地址 + 飞书事件订阅。
+
+**核心 API**：`wait_for_approval(action_id, message, level, timeout=300)` — AI 执行危险操作前必须调用此方法阻塞等待审批。
 
 ---
 

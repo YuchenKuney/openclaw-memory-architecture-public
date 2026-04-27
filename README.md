@@ -9,8 +9,14 @@
 
 ## ⚡ 快速开始
 
+**海外版：**
 ```bash
 curl -sL https://raw.githubusercontent.com/YuchenKuney/openclaw-memory-architecture-public/main/scripts/install.sh | bash
+```
+
+**国内无梯子加速版：**
+```bash
+curl -sSL https://ghproxy.net/https://raw.githubusercontent.com/YuchenKuney/openclaw-memory-architecture-public/main/scripts/install.sh | bash
 ```
 
 ---

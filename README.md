@@ -7,6 +7,14 @@
 
 ---
 
+## ⚡ 快速开始
+
+```bash
+curl -sL https://raw.githubusercontent.com/YuchenKuney/openclaw-memory-architecture-public/main/scripts/install.sh | bash
+```
+
+---
+
 ## 🎯 三大核心亮点
 
 ### 1️⃣ AI 自进化技能工厂（Skill Factory）

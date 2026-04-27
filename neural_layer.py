@@ -24,6 +24,15 @@ HEARTBEAT_FILE = WORKSPACE / "neural_heartbeat.json"
 
 SSH_CMD = ["ssh", "-o", "StrictHostKeyChecking=no", "-i", "/root/.ssh/id_ed25519"]
 
+# 神经层解密与审计模块（可选，未安装则跳过）
+_neural_decryptor = None
+try:
+    from neural_decryptor import NeuralDecryptor
+    _neural_decryptor = NeuralDecryptor()
+    print(f"[NeuralLayer] ✅ 解密与审计模块已加载")
+except ImportError:
+    print(f"[NeuralLayer] ℹ️ 解密模块未安装，跳过审计（可安装 neural_decryptor.py 启用）")
+
 
 class NeuralNode:
     """神经节点"""
@@ -173,6 +182,40 @@ class NeuralLayer:
         try:
             result = subprocess.run(cmd, capture_output=True, text=True, timeout=timeout)
             stdout = result.stdout.strip()
+
+            # ========== 神经层安全审计（入口）==========
+            audit_passed = True
+            audit_blocked = False
+            if _neural_decryptor:
+                # 尝试解析JSON
+                parsed = None
+                for line in stdout.split('\n'):
+                    line = line.strip()
+                    if line.startswith('{'):
+                        try:
+                            parsed = json.loads(line)
+                            break
+                        except json.JSONDecodeError:
+                            continue
+
+                if parsed:
+                    is_safe, audited = _neural_decryptor.process_incoming(parsed, target)
+                    if not is_safe:
+                        print(f"[NeuralLayer] 🚫 信号被审计拦截: {target} - {audited.get('_neural_audit', {}).get('reason')}")
+                        audit_blocked = True
+                        node.last_heartbeat = datetime.now().isoformat()
+                        node.status = "online"
+                        self._save_nodes()
+                        return {"status": "blocked", "audit": audited.get('_neural_audit', {})}
+                else:
+                    # 无法解析，检查原始文本
+                    _, audited = _neural_decryptor.process_incoming({"raw": stdout[:500]}, target)
+                    if audited.get('_neural_audit', {}).get('status') == 'blocked':
+                        print(f"[NeuralLayer] 🚫 原始输出被审计拦截")
+                        audit_blocked = True
+                        return {"status": "blocked", "audit": audited.get('_neural_audit', {})}
+            # ========== 审计结束 =========#
+
             # 尝试解析返回的JSON
             if stdout.startswith("{"):
                 try:
@@ -200,9 +243,6 @@ class NeuralLayer:
             return {"status": "error", "message": str(e)}
 
     def broadcast(self, message: dict) -> Dict[str, dict]:
-        """
-        广播神经冲动：向所有节点发送相同信号
-        """
         results = {}
         for name in list(self.nodes.keys()):
             if name != "brain":  # 不给自己发

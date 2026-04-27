@@ -1,0 +1,396 @@
+{
+  "decisions": [
+    {
+      "timestamp": "2026-04-27T00:00:02.351201",
+      "action": "distill",
+      "reason": "从未执行过日志提炼，待提炼 6 个日志",
+      "result": "success",
+      "details": {
+        "distilled": 5,
+        "dates": [
+          "2026-04-23",
+          "2026-04-22",
+          "2026-04-21",
+          "2026-04-20",
+          "2026-04-19"
+        ]
+      }
+    },
+    {
+      "timestamp": "2026-04-27T00:00:02.351226",
+      "action": "health_check",
+      "reason": "例行健康检查",
+      "result": "success",
+      "details": {
+        "memory_lifecycle": {
+          "active_files": 7,
+          "to_archive": 0,
+          "to_delete": 0,
+          "dedup_entries": 0,
+          "update_entries": 0,
+          "last_cleanup": null
+        },
+        "knowledge_graph": {
+          "entities": 1
+        },
+        "rules": {
+          "total": 0,
+          "active": 0
+        },
+        "timestamp": "2026-04-23T12:00:02.319668"
+      }
+    },
+    {
+      "timestamp": "2026-04-27T00:00:02.351229",
+      "action": "integrity_check",
+      "reason": "完整性校验通过 (clean)",
+      "result": "success",
+      "details": {
+        "status": "clean",
+        "changed": [],
+        "added": [],
+        "removed": []
+      }
+    },
+    {
+      "timestamp": "2026-04-27T00:00:02.351232",
+      "action": "distill",
+      "reason": "从未执行过日志提炼，待提炼 6 个日志",
+      "result": "success",
+      "details": {
+        "distilled": 5,
+        "dates": [
+          "2026-04-23",
+          "2026-04-22",
+          "2026-04-21",
+          "2026-04-20",
+          "2026-04-19"
+        ]
+      }
+    },
+    {
+      "timestamp": "2026-04-27T00:00:02.351235",
+      "action": "health_check",
+      "reason": "例行健康检查",
+      "result": "success",
+      "details": {
+        "memory_lifecycle": {
+          "active_files": 7,
+          "to_archive": 0,
+          "to_delete": 0,
+          "dedup_entries": 0,
+          "update_entries": 0,
+          "last_cleanup": null
+        },
+        "knowledge_graph": {
+          "entities": 1
+        },
+        "rules": {
+          "total": 0,
+          "active": 0
+        },
+        "timestamp": "2026-04-24T00:00:02.431538"
+      }
+    },
+    {
+      "timestamp": "2026-04-27T00:00:02.351238",
+      "action": "integrity_check",
+      "reason": "完整性校验通过 (clean)",
+      "result": "success",
+      "details": {
+        "status": "clean",
+        "changed": [],
+        "added": [],
+        "removed": []
+      }
+    },
+    {
+      "timestamp": "2026-04-27T00:00:02.351240",
+      "action": "health_check",
+      "reason": "例行健康检查",
+      "result": "success",
+      "details": {
+        "memory_lifecycle": {
+          "active_files": 7,
+          "to_archive": 0,
+          "to_delete": 0,
+          "dedup_entries": 0,
+          "update_entries": 0,
+          "last_cleanup": null
+        },
+        "knowledge_graph": {
+          "entities": 1
+        },
+        "rules": {
+          "total": 0,
+          "active": 0
+        },
+        "timestamp": "2026-04-24T12:00:02.118360"
+      }
+    },
+    {
+      "timestamp": "2026-04-27T00:00:02.351242",
+      "action": "integrity_check",
+      "reason": "完整性校验通过 (clean)",
+      "result": "success",
+      "details": {
+        "status": "clean",
+        "changed": [],
+        "added": [],
+        "removed": []
+      }
+    },
+    {
+      "timestamp": "2026-04-27T00:00:02.351244",
+      "action": "health_check",
+      "reason": "例行健康检查",
+      "result": "success",
+      "details": {
+        "memory_lifecycle": {
+          "active_files": 8,
+          "to_archive": 1,
+          "to_delete": 0,
+          "dedup_entries": 0,
+          "update_entries": 0,
+          "last_cleanup": null
+        },
+        "knowledge_graph": {
+          "entities": 1
+        },
+        "rules": {
+          "total": 0,
+          "active": 0
+        },
+        "timestamp": "2026-04-25T00:00:01.521584"
+      }
+    },
+    {
+      "timestamp": "2026-04-27T00:00:02.351247",
+      "action": "integrity_check",
+      "reason": "完整性校验通过 (clean)",
+      "result": "success",
+      "details": {
+        "status": "clean",
+        "changed": [],
+        "added": [],
+        "removed": []
+      }
+    },
+    {
+      "timestamp": "2026-04-27T00:00:02.351249",
+      "action": "health_check",
+      "reason": "例行健康检查",
+      "result": "success",
+      "details": {
+        "memory_lifecycle": {
+          "active_files": 8,
+          "to_archive": 1,
+          "to_delete": 0,
+          "dedup_entries": 0,
+          "update_entries": 0,
+          "last_cleanup": null
+        },
+        "knowledge_graph": {
+          "entities": 1
+        },
+        "rules": {
+          "total": 0,
+          "active": 0
+        },
+        "timestamp": "2026-04-25T06:00:02.372212"
+      }
+    },
+    {
+      "timestamp": "2026-04-27T00:00:02.351251",
+      "action": "integrity_check",
+      "reason": "完整性校验通过 (clean)",
+      "result": "success",
+      "details": {
+        "status": "clean",
+        "changed": [],
+        "added": [],
+        "removed": []
+      }
+    },
+    {
+      "timestamp": "2026-04-27T00:00:02.351254",
+      "action": "health_check",
+      "reason": "例行健康检查",
+      "result": "success",
+      "details": {
+        "memory_lifecycle": {
+          "active_files": 9,
+          "to_archive": 1,
+          "to_delete": 0,
+          "dedup_entries": 0,
+          "update_entries": 0,
+          "last_cleanup": null
+        },
+        "knowledge_graph": {
+          "entities": 1
+        },
+        "rules": {
+          "total": 0,
+          "active": 0
+        },
+        "timestamp": "2026-04-25T18:00:01.372027"
+      }
+    },
+    {
+      "timestamp": "2026-04-27T00:00:02.351256",
+      "action": "integrity_check",
+      "reason": "完整性校验通过 (clean)",
+      "result": "success",
+      "details": {
+        "status": "clean",
+        "changed": [],
+        "added": [],
+        "removed": []
+      }
+    },
+    {
+      "timestamp": "2026-04-27T00:00:02.351259",
+      "action": "health_check",
+      "reason": "例行健康检查",
+      "result": "success",
+      "details": {
+        "memory_lifecycle": {
+          "active_files": 9,
+          "to_archive": 2,
+          "to_delete": 0,
+          "dedup_entries": 0,
+          "update_entries": 0,
+          "last_cleanup": null
+        },
+        "knowledge_graph": {
+          "entities": 1
+        },
+        "rules": {
+          "total": 0,
+          "active": 0
+        },
+        "timestamp": "2026-04-26T00:00:01.782176"
+      }
+    },
+    {
+      "timestamp": "2026-04-27T00:00:02.351261",
+      "action": "integrity_check",
+      "reason": "完整性校验通过 (clean)",
+      "result": "success",
+      "details": {
+        "status": "clean",
+        "changed": [],
+        "added": [],
+        "removed": []
+      }
+    },
+    {
+      "timestamp": "2026-04-27T00:00:02.351263",
+      "action": "health_check",
+      "reason": "例行健康检查",
+      "result": "success",
+      "details": {
+        "memory_lifecycle": {
+          "active_files": 9,
+          "to_archive": 2,
+          "to_delete": 0,
+          "dedup_entries": 0,
+          "update_entries": 0,
+          "last_cleanup": null
+        },
+        "knowledge_graph": {
+          "entities": 1
+        },
+        "rules": {
+          "total": 0,
+          "active": 0
+        },
+        "timestamp": "2026-04-26T06:00:01.863378"
+      }
+    },
+    {
+      "timestamp": "2026-04-27T00:00:02.351265",
+      "action": "integrity_check",
+      "reason": "完整性校验通过 (clean)",
+      "result": "success",
+      "details": {
+        "status": "clean",
+        "changed": [],
+        "added": [],
+        "removed": []
+      }
+    },
+    {
+      "timestamp": "2026-04-27T00:00:02.351268",
+      "action": "health_check",
+      "reason": "例行健康检查",
+      "result": "success",
+      "details": {
+        "memory_lifecycle": {
+          "active_files": 9,
+          "to_archive": 2,
+          "to_delete": 0,
+          "dedup_entries": 0,
+          "update_entries": 0,
+          "last_cleanup": null
+        },
+        "knowledge_graph": {
+          "entities": 1
+        },
+        "rules": {
+          "total": 0,
+          "active": 0
+        },
+        "timestamp": "2026-04-26T18:00:01.730466"
+      }
+    },
+    {
+      "timestamp": "2026-04-27T00:00:02.351270",
+      "action": "integrity_check",
+      "reason": "完整性校验通过 (clean)",
+      "result": "success",
+      "details": {
+        "status": "clean",
+        "changed": [],
+        "added": [],
+        "removed": []
+      }
+    },
+    {
+      "timestamp": "2026-04-27T00:00:02.351832",
+      "action": "health_check",
+      "reason": "例行健康检查",
+      "result": "success",
+      "details": {
+        "memory_lifecycle": {
+          "active_files": 9,
+          "to_archive": 3,
+          "to_delete": 0,
+          "dedup_entries": 0,
+          "update_entries": 0,
+          "last_cleanup": null
+        },
+        "knowledge_graph": {
+          "entities": 1
+        },
+        "rules": {
+          "total": 0,
+          "active": 0
+        },
+        "timestamp": "2026-04-27T00:00:02.357637"
+      }
+    },
+    {
+      "timestamp": "2026-04-27T00:00:02.357662",
+      "action": "integrity_check",
+      "reason": "完整性校验通过 (clean)",
+      "result": "success",
+      "details": {
+        "status": "clean",
+        "changed": [],
+        "added": [],
+        "removed": []
+      }
+    }
+  ]
+}

@@ -1,0 +1,28 @@
+{
+  "entities": {
+    "test_script": {
+      "id": "test_script",
+      "type": "script",
+      "name": "test_script",
+      "properties": {},
+      "relations": [
+        {
+          "type": "used_by",
+          "target": "test_detector",
+          "context": "PR④ 测试"
+        }
+      ],
+      "first_seen": "2026-04-19",
+      "last_updated": "2026-04-19",
+      "tags": [
+        "unit",
+        "test"
+      ],
+      "event_count": 0
+    }
+  },
+  "meta": {
+    "updated_at": "2026-04-19 15:12:45",
+    "total_entities": 1
+  }
+}

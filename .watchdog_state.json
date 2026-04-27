@@ -1,7 +1,17 @@
 {
-  "monitor_pid": 850006,
-  "last_restart": "2026-04-20 05:17:42",
-  "restart_count": 6,
-  "last_heartbeat": "2026-04-20 05:20:58",
+  "monitor_pids": {
+    "task_monitor": 1733782,
+    "task_agent": 1873426
+  },
+  "last_restart": "2026-04-26 12:02:18",
+  "restart_count": 1,
+  "last_heartbeat": "2026-04-27 08:14:11",
+  "monitored": [
+    "task_monitor",
+    "task_agent"
+  ],
+  "notify_cooldown": {
+    "cooldown_task_agent": 1777197738.9277048
+  },
   "monitor_alive": true
 }

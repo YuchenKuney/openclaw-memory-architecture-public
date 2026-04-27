@@ -1,0 +1,319 @@
+{
+  "version": 1,
+  "updatedAt": "2026-04-24T02:36:26.930Z",
+  "entries": {
+    "memory:memory/2026-04-20.md:117:149": {
+      "key": "memory:memory/2026-04-20.md:117:149",
+      "path": "memory/2026-04-20.md",
+      "startLine": 117,
+      "endLine": 149,
+      "source": "memory",
+      "snippet": "2. **写正确的 `.watchdog-run.sh`**：自己实现 daemonize，不走 Python --daemon 3. **systemd service 改用 `ExecStart=/bin/bash /root/.openclaw/workspace/.watchdog-run.sh`** 4. **去掉 `start_new_session=True`**，改用 `stdin=DEVNULL` 防止 SIGHUP ### 关键文件 - `/root/.openclaw/workspace/task_watchdog.py` — watchdog 主逻辑（功能正常） - `/root/.openclaw/workspace/.watchdog-run.sh` — 新的 bash daemonizer（未完成） - `/etc/systemd/system/task-watchdog.service` — systemd service（需要更新） ## 看门狗调试 session 续（05:15-06:00 北京时间） ### 坤哥新需求：子 agent 实时推送「怎么做」「预计多久」 坤哥要求：task_monitor 推送的飞书卡片要包含完整信息： - **做了什么**：当前 step 名称 - **怎么做**：主 agent 传入 `--how` 参数 - **预计多久**：ETA 秒数 ### 实现方案 **progress_tracker.py 新增参数**： - `--how`：做法描述（透传到 progress JSON → ta",
+      "recallCount": 2,
+      "dailyCount": 0,
+      "groundedCount": 0,
+      "totalScore": 2,
+      "maxScore": 1,
+      "firstRecalledAt": "2026-04-22T02:15:47.914Z",
+      "lastRecalledAt": "2026-04-22T03:04:30.301Z",
+      "queryHashes": [
+        "a6c5909fcc91",
+        "c6680c32f55b"
+      ],
+      "recallDays": [
+        "2026-04-22"
+      ],
+      "conceptTags": [
+        "watchdog-run.sh",
+        "bin/bash",
+        "openclaw/workspace",
+        "start-new-session",
+        "15-06",
+        "task-monitor",
+        "progress-tracker.py",
+        "正确"
+      ]
+    },
+    "memory:memory/2026-04-19.md:50:79": {
+      "key": "memory:memory/2026-04-19.md:50:79",
+      "path": "memory/2026-04-19.md",
+      "startLine": 50,
+      "endLine": 79,
+      "source": "memory",
+      "snippet": "cron触发（09:00/15:50/18:30 北京时间） → cron-event-writer.py 写入 cron-events/*.json → clawkeeper inotify 毫秒级检测 → detector.py → RiskLevel.SAFE → notifier.py → notify_cron_event() → 飞书卡片 ``` - **cron-event-writer.py**: `/root/.openclaw/workspace/scripts/cron-event-writer.py` (755) - **cron-events dir**: `/root/.openclaw/workspace/cron-events/` ### Group Chat Progress Notifications (New) - **Feishu group webhook**: `https://open.feishu.cn/open-apis/bot/v2/hook/7a939580-e987-4571-a142-f58528cf71ec` - **Group chat ID**: `oc_0533b03e077fedca255c4d2c6717deea` - **Script**: `scripts/feishu_progress.py` - 支持多步骤进度推送（0-100%） - Usage: `python3 feishu_progress.py <job_name> <progress> <step> [message]",
+      "recallCount": 2,
+      "dailyCount": 0,
+      "groundedCount": 0,
+      "totalScore": 2,
+      "maxScore": 1,
+      "firstRecalledAt": "2026-04-22T02:15:47.914Z",
+      "lastRecalledAt": "2026-04-22T03:04:30.301Z",
+      "queryHashes": [
+        "a6c5909fcc91",
+        "c6680c32f55b"
+      ],
+      "recallDays": [
+        "2026-04-22"
+      ],
+      "conceptTags": [
+        "00/15",
+        "50/18",
+        "cron-event-writer.py",
+        "cron-events",
+        "detector.py",
+        "risklevel.safe",
+        "notifier.py",
+        "notify-cron-event"
+      ]
+    },
+    "memory:memory/2026-04-19.md:139:168": {
+      "key": "memory:memory/2026-04-19.md:139:168",
+      "path": "memory/2026-04-19.md",
+      "startLine": 139,
+      "endLine": 168,
+      "source": "memory",
+      "snippet": "cron触发（09:00/15:50/18:30 北京时间） → cron-event-writer.py 写入 cron-events/*.json → clawkeeper inotify 毫秒级检测 → detector.py → RiskLevel.SAFE → notifier.py → notify_cron_event() → 飞书卡片 ``` - **cron-event-writer.py**: `/root/.openclaw/workspace/scripts/cron-event-writer.py` (755) - **cron-events dir**: `/root/.openclaw/workspace/cron-events/` ### Group Chat Progress Notifications (New) - **Feishu group webhook**: `https://open.feishu.cn/open-apis/bot/v2/hook/7a939580-e987-4571-a142-f58528cf71ec` - **Group chat ID**: `oc_0533b03e077fedca255c4d2c6717deea` - **Script**: `scripts/feishu_progress.py` - 支持多步骤进度推送（0-100%） - Usage: `python3 feishu_progress.py <job_name> <progress> <step> [message]",
+      "recallCount": 2,
+      "dailyCount": 0,
+      "groundedCount": 0,
+      "totalScore": 2,
+      "maxScore": 1,
+      "firstRecalledAt": "2026-04-22T02:15:47.914Z",
+      "lastRecalledAt": "2026-04-22T03:04:30.301Z",
+      "queryHashes": [
+        "a6c5909fcc91",
+        "c6680c32f55b"
+      ],
+      "recallDays": [
+        "2026-04-22"
+      ],
+      "conceptTags": [
+        "00/15",
+        "50/18",
+        "cron-event-writer.py",
+        "cron-events",
+        "detector.py",
+        "risklevel.safe",
+        "notifier.py",
+        "notify-cron-event"
+      ]
+    },
+    "memory:memory/2026-04-19.md:161:192": {
+      "key": "memory:memory/2026-04-19.md:161:192",
+      "path": "memory/2026-04-19.md",
+      "startLine": 161,
+      "endLine": 192,
+      "source": "memory",
+      "snippet": "- **全链路透明化**: AI执行任务必须分阶段主动报告，不等坤哥追问 - **安全违规先报后修**: 发现问题立即报告坤哥，不先修再报 ## Next Validation Points - Today **15:50 Beijing** → 喂鱼提醒飞书卡片（cron-events → clawkeeper → 飞书） - Today **18:30 Beijing** → 记忆同步飞书卡片 ## Active Cron Jobs (9 total) | Job ID | Name | Schedule (Asia/Shanghai) | Next Run (CST) | |--------|------|--------------------------|-----------------| | 3d2c80c2-... | 喂鱼提醒-09:00 | `0 9 * * *` | 04-20 09:00 | | be9ea7a7-... | 喂鱼提醒-09:30 | `30 9 * * *` | 04-20 09:30 | | 8c105c93-... | 喂鱼提醒-15:50 | `50 15 * * *` | 04-19 15:50 | | b5878ace-... | 记忆同步-18:30 | `30 18 * * *` | 04-19 18:30 | | a1b2c3d4-01 | 喂鱼提醒-09:00-透明 | `0 9 * * *` | 04-20 09:00 | | a1b2c3d4-02 | 喂鱼提醒-09:30-透明 | `30 9 * * *`",
+      "recallCount": 1,
+      "dailyCount": 0,
+      "groundedCount": 0,
+      "totalScore": 1,
+      "maxScore": 1,
+      "firstRecalledAt": "2026-04-22T02:15:47.914Z",
+      "lastRecalledAt": "2026-04-22T02:15:47.914Z",
+      "queryHashes": [
+        "a6c5909fcc91"
+      ],
+      "recallDays": [
+        "2026-04-22"
+      ],
+      "conceptTags": [
+        "cron-events",
+        "asia/shanghai",
+        "喂鱼提醒-09",
+        "04-20",
+        "喂鱼提醒-15",
+        "04-19",
+        "记忆同步-18",
+        "a1b2c3d4-01"
+      ]
+    },
+    "memory:memory/2026-04-19.md:72:98": {
+      "key": "memory:memory/2026-04-19.md:72:98",
+      "path": "memory/2026-04-19.md",
+      "startLine": 72,
+      "endLine": 98,
+      "source": "memory",
+      "snippet": "- **全链路透明化**: AI执行任务必须分阶段主动报告，不等坤哥追问 - **安全违规先报后修**: 发现问题立即报告坤哥，不先修再报 ## Next Validation Points - Today **15:50 Beijing** → 喂鱼提醒飞书卡片（cron-events → clawkeeper → 飞书） - Today **18:30 Beijing** → 记忆同步飞书卡片 ## Active Cron Jobs (9 total) | Job ID | Name | Schedule (Asia/Shanghai) | Next Run (CST) | |--------|------|--------------------------|-----------------| | 3d2c80c2-... | 喂鱼提醒-09:00 | `0 9 * * *` | 04-20 09:00 | | be9ea7a7-... | 喂鱼提醒-09:30 | `30 9 * * *` | 04-20 09:30 | | 8c105c93-... | 喂鱼提醒-15:50 | `50 15 * * *` | 04-19 15:50 | | b5878ace-... | 记忆同步-18:30 | `30 18 * * *` | 04-19 18:30 | | a1b2c3d4-01 | 喂鱼提醒-09:00-透明 | `0 9 * * *` | 04-20 09:00 | | a1b2c3d4-02 | 喂鱼提醒-09:30-透明 | `30 9 * * *`",
+      "recallCount": 1,
+      "dailyCount": 0,
+      "groundedCount": 0,
+      "totalScore": 1,
+      "maxScore": 1,
+      "firstRecalledAt": "2026-04-22T02:15:47.914Z",
+      "lastRecalledAt": "2026-04-22T02:15:47.914Z",
+      "queryHashes": [
+        "a6c5909fcc91"
+      ],
+      "recallDays": [
+        "2026-04-22"
+      ],
+      "conceptTags": [
+        "cron-events",
+        "asia/shanghai",
+        "喂鱼提醒-09",
+        "04-20",
+        "喂鱼提醒-15",
+        "04-19",
+        "记忆同步-18",
+        "a1b2c3d4-01"
+      ]
+    },
+    "memory:memory/2026-04-20.md:246:274": {
+      "key": "memory:memory/2026-04-20.md:246:274",
+      "path": "memory/2026-04-20.md",
+      "startLine": 246,
+      "endLine": 274,
+      "source": "memory",
+      "snippet": "飞书卡片的「允许」「拒绝」按钮通过 HTTP POST 回调到：`http://46.250.233.112:8765/feishu/reply` **问题1**：`reply_handler.py` 只定义了 `do_POST`，飞书验证 challenge 时用 GET → 返回 404 **修复**：加了 `do_GET()` 处理 challenge 验证 GET 请求 **问题2**：`CLAWKEEPER_PAUSED = \"1\"` 导致 AI 假死 **修复**：移除 `os.environ[\"CLAWKEEPER_PAUSED\"] = \"1\"`，AI 继续运行不卡死 ### 当前状态 - ReplyServer 运行在 `0.0.0.0:8765`（nohup 后台运行） - 公网地址：`http://46.250.233.112:8765/feishu/reply` - 飞书开放平台需要配置此回调地址（坤哥在操作中） ### 已知限制 - 群组 Webhook（`oc_0533b03e077fedca255c4d2c6717deea`）只能发消息，**不能接收**坤哥的文字回复 - 卡片按钮回调是唯一实时接收审批指令的方式（需要公网可达） - 用户 ID 直接推送（`ou_c079cf9f93da3030aacb081900d55a8e`）需要用户安装应用，当前报 `open_id cross app` 错误 ### 推送 commits - `02ac4a7`: feat: 飞书审批联动 - ReplyServer + PendingRegistr",
+      "recallCount": 1,
+      "dailyCount": 0,
+      "groundedCount": 0,
+      "totalScore": 1,
+      "maxScore": 1,
+      "firstRecalledAt": "2026-04-22T02:15:47.914Z",
+      "lastRecalledAt": "2026-04-22T02:15:47.914Z",
+      "queryHashes": [
+        "a6c5909fcc91"
+      ],
+      "recallDays": [
+        "2026-04-22"
+      ],
+      "conceptTags": [
+        "46.250.233.112",
+        "8765/feishu/reply",
+        "reply-handler.py",
+        "do-post",
+        "do-get",
+        "clawkeeper-paused",
+        "os.environ",
+        "0.0.0.0"
+      ]
+    },
+    "memory:memory/2026-04-20.md:70:96": {
+      "key": "memory:memory/2026-04-20.md:70:96",
+      "path": "memory/2026-04-20.md",
+      "startLine": 70,
+      "endLine": 96,
+      "source": "memory",
+      "snippet": "- 测试 query: \"Shopee Indonesia market share 2025 2026\" 等 4 个 - 抓取结果: 9 个页面，2026年最新市场数据，结构完整 - 结果保存: `/root/.openclaw/web4_sandbox/results/ruled_Shopee_Indonesia_market_share_20260420_041153.json` - NVIDIA NIM 分析：偶发 SSL network timeout（60s），可配 longer timeout 重试 - Cookie 注入: 85 个 → 12 个 allowed，73 个 blocked（铁律一二生效） ### 关键文件清单 ``` web4_nvidia_nim.py # NVIDIA NIM 封装（1.2.1 刚测通） web4_shopee_researcher.py # Shopee 市场研究器 web4_controller.py # 铁律 research_with_ruler() web4_cookie_injector.py # Cookie 铁律过滤器 web4_browser.py # Playwright 浏览器 web4_container.py # Linux Namespace 沙箱 web4_cooker.py # CookingEngine ``` ## 看门狗调试 session（04:20-05:15 北京",
+      "recallCount": 1,
+      "dailyCount": 0,
+      "groundedCount": 0,
+      "totalScore": 1,
+      "maxScore": 1,
+      "firstRecalledAt": "2026-04-24T02:36:26.930Z",
+      "lastRecalledAt": "2026-04-24T02:36:26.930Z",
+      "queryHashes": [
+        "7b6b8c4c4a0d"
+      ],
+      "recallDays": [
+        "2026-04-24"
+      ],
+      "conceptTags": [
+        "network",
+        "web4-nvidia-nim.py",
+        "1.2.1",
+        "web4-shopee-researcher.py",
+        "web4-controller.py",
+        "research-with-ruler",
+        "web4-cookie-injector.py",
+        "web4-browser.py"
+      ]
+    },
+    "memory:memory/2026-04-20.md:195:230": {
+      "key": "memory:memory/2026-04-20.md:195:230",
+      "path": "memory/2026-04-20.md",
+      "startLine": 195,
+      "endLine": 230,
+      "source": "memory",
+      "snippet": "| `task_watchdog.py` | daemon fork bug 修复，移除日常心跳飞书通知 | | `web4_container.py` | Linux Namespace 沙箱 | | `web4_browser.py` | Playwright stealth 浏览器 | | `web4_controller.py` | research() 函数 | | `web4_cooker.py` | CookingEngine | **铁律写死在 web4_cookie_injector.py**： - PayPal/银行/Facebook/Ins/email/政府/Slack/Notion/Google Drive/加密货币 → 无条件屏蔽 - Google 登录 token（HSID/SSID/APISID/SAPISID/ACCOUNT_CHOOSER）→ 屏蔽 - Google 偏好 cookie（SNID/OTZ/SEARCH_SAMESITE/__Secure-BUCKET）→ 允许 - Cookie 存储：`/root/.openclaw/web4_sandbox/kun_ge_cookies.json`（不 git 追踪） **推送后 git status**（workspace）： - `pub_arch/main`: 已推送（commit 5e8a2cb） - `main`: 本地 main 分支（未推送，v10 变更在 pub_arch/main） ## 当前运行状态（06:31 北京时间） - watchdog: PID 85010",
+      "recallCount": 1,
+      "dailyCount": 0,
+      "groundedCount": 0,
+      "totalScore": 1,
+      "maxScore": 1,
+      "firstRecalledAt": "2026-04-24T02:36:26.930Z",
+      "lastRecalledAt": "2026-04-24T02:36:26.930Z",
+      "queryHashes": [
+        "7b6b8c4c4a0d"
+      ],
+      "recallDays": [
+        "2026-04-24"
+      ],
+      "conceptTags": [
+        "task-watchdog.py",
+        "web4-container.py",
+        "web4-browser.py",
+        "web4-controller.py",
+        "web4-cooker.py",
+        "web4-cookie-injector.py",
+        "drive/加密货币",
+        "snid/otz/search-samesite"
+      ]
+    },
+    "memory:memory/2026-04-20.md:24:55": {
+      "key": "memory:memory/2026-04-20.md:24:55",
+      "path": "memory/2026-04-20.md",
+      "startLine": 24,
+      "endLine": 55,
+      "source": "memory",
+      "snippet": "### Web4.0 端到端测试结果（Shopee 印尼） - 测试 query: \"Shopee Indonesia market share 2025 2026\" 等 4 个 - 抓取结果: 9 个页面，2026年最新市场数据，结构完整 - 结果保存: `/root/.openclaw/web4_sandbox/results/ruled_Shopee_Indonesia_market_share_2025_20260420_041153.json` - NVIDIA NIM 分析：偶发 SSL network timeout（60s），可配 longer timeout 重试 - Cookie 注入: 85 个 → 12 个 allowed，73 个 blocked（铁律一二生效） ### 关键文件清单 ``` web4_nvidia_nim.py # NVIDIA NIM 封装（1.2.1 刚测通） web4_shopee_researcher.py # Shopee 市场研究器 web4_controller.py # 铁律 research_with_ruler() web4_cookie_injector.py # Cookie 铁律过滤器 web4_browser.py # Playwright 浏览器 web4_container.py # Linux Namespace 沙箱 web4_cooker.py # CookingEngine `",
+      "recallCount": 1,
+      "dailyCount": 0,
+      "groundedCount": 0,
+      "totalScore": 1,
+      "maxScore": 1,
+      "firstRecalledAt": "2026-04-24T02:36:26.930Z",
+      "lastRecalledAt": "2026-04-24T02:36:26.930Z",
+      "queryHashes": [
+        "7b6b8c4c4a0d"
+      ],
+      "recallDays": [
+        "2026-04-24"
+      ],
+      "conceptTags": [
+        "network",
+        "web4.0",
+        "web4-nvidia-nim.py",
+        "1.2.1",
+        "web4-shopee-researcher.py",
+        "web4-controller.py",
+        "research-with-ruler",
+        "web4-cookie-injector.py"
+      ]
+    },
+    "memory:memory/2026-04-20.md:169:201": {
+      "key": "memory:memory/2026-04-20.md:169:201",
+      "path": "memory/2026-04-20.md",
+      "startLine": 169,
+      "endLine": 201,
+      "source": "memory",
+      "snippet": "🔧 做法：使用 AST 静态分析 + 危险函数模式匹配，检测 os.system/subprocess/eval 等高危调用 ⏱️ 预计 180秒 后完成 ██████████ 50% 📋 步骤进度：50% 📍 Step 2/4: 检查命令注入风险 ``` ### 看门狗通知策略（反黑箱化） - **日常心跳**：只更新 `.watchdog_heartbeat.json`，不飞书通知 - **子 agent 掉线**：watchdog 自动拉起 → 飞书告警（坤哥收到「✅ 监控进程已拉起」） - **memory 被篡改**：完整性检查失败 → 飞书告警 ## v10 推送（06:00-06:31 北京时间） ### 推送到 pub_arch/main（公共仓库） **commit**: `5e8a2cb` feat: v10 反黑箱通知铁律落地 + Web4.0 沙箱无头浏览器系统 **推送文件**： | 文件 | 说明 | |------|------| | `README.md` | v9→v10 版本更新 | | `ANTI_BLACKBOX.md` | 新增 v10 落地状态（铁律清单+文件索引） | | `scripts/progress_tracker.py` | 新增 `--how`/`--eta`/`--steps` 参数 | | `task_monitor.py` | 四场景 notify 全部升级，加入 how+eta | | `task_watchdog.py` | daemon fork bug 修复，移除日常心跳飞书通知 | |",
+      "recallCount": 1,
+      "dailyCount": 0,
+      "groundedCount": 0,
+      "totalScore": 0.9037941712906912,
+      "maxScore": 0.9037941712906912,
+      "firstRecalledAt": "2026-04-24T02:36:26.930Z",
+      "lastRecalledAt": "2026-04-24T02:36:26.930Z",
+      "queryHashes": [
+        "7b6b8c4c4a0d"
+      ],
+      "recallDays": [
+        "2026-04-24"
+      ],
+      "conceptTags": [
+        "os.system/subprocess/eval",
+        "2/4",
+        "watchdog-heartbeat.json",
+        "00-06",
+        "pub-arch/main",
+        "web4.0",
+        "readme.md",
+        "anti-blackbox.md"
+      ]
+    }
+  }
+}

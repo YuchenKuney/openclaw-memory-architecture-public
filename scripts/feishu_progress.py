@@ -7,26 +7,50 @@ feishu_progress.py - 飞书进度推送（反黑箱专用，不走主会话）
 
 颜色模板：blue=进行中, green=完成, red=警告, purple=最终报告
 """
-import sys
-import json
-import urllib.request
+import sys, os, json, urllib.request
 from datetime import datetime
 
-WEBHOOK = "YOUR_FEISHU_WEBHOOK_URL"
+# 加载环境变量
+if os.path.exists('/etc/environment'):
+    with open('/etc/environment') as f:
+        for line in f:
+            line = line.strip()
+            if '=' in line and not line.startswith('#'):
+                k, v = line.split('=', 1)
+                v = v.strip('"')
+                os.environ.setdefault(k, v)
+
+APP_ID = os.environ.get("FEISHU_APP_ID", "cli_a96c9b5700f91bc9")
+APP_SECRET = os.environ.get("FEISHU_APP_SECRET", "")
+GROUP_ID = os.environ.get("FEISHU_GROUP_ID", "oc_0533b03e077fedca255c4d2c6717deea")
 
 TEMPLATE_COLORS = {
-    "blue": "blue",     # 进行中
-    "green": "green",   # 完成
-    "red": "red",       # 警告/错误
-    "purple": "purple", # 最终报告
-    "orange": "orange", # 等待中
+    "blue": "blue",
+    "green": "green",
+    "red": "red",
+    "purple": "purple",
+    "orange": "orange",
 }
+
+def get_token():
+    url = "https://open.feishu.cn/open-apis/auth/v3/tenant_access_token/internal"
+    data = json.dumps({"app_id": APP_ID, "app_secret": APP_SECRET}).encode("utf-8")
+    req = urllib.request.Request(url, data=data, headers={"Content-Type": "application/json"})
+    try:
+        with urllib.request.urlopen(req, timeout=10) as resp:
+            result = json.loads(resp.read())
+            if result.get("code") != 0:
+                print(f"Token failed: {result}")
+                return None
+            return result["tenant_access_token"]
+    except Exception as e:
+        print(f"Token error: {e}")
+        return None
 
 def send_progress(step_title: str, content: str, color: str = "blue", done: bool = False):
     """发送进度卡片到飞书群"""
     color = TEMPLATE_COLORS.get(color, "blue")
-    
-    # Emoji 前缀
+
     if done:
         emoji = "✅"
     elif "完成" in step_title or "done" in step_title.lower():
@@ -39,10 +63,11 @@ def send_progress(step_title: str, content: str, color: str = "blue", done: bool
         emoji = "📊"
     else:
         emoji = "🔄"
-    
+
     card = {
+        "receive_id": GROUP_ID,
         "msg_type": "interactive",
-        "card": {
+        "content": json.dumps({
             "config": {"wide_screen_mode": True},
             "header": {
                 "title": {"tag": "plain_text", "content": f"{emoji} {step_title}"},
@@ -58,15 +83,25 @@ def send_progress(step_title: str, content: str, color: str = "blue", done: bool
                     ]
                 }
             ]
-        }
+        }, ensure_ascii=False)
     }
-    
-    payload = json.dumps(card, ensure_ascii=False).encode("utf-8")
-    req = urllib.request.Request(WEBHOOK, data=payload, headers={"Content-Type": "application/json"})
+
+    token = get_token()
+    if not token:
+        print("❌ 无法获取token")
+        return
+
+    msg_url = "https://open.feishu.cn/open-apis/im/v1/messages?receive_id_type=chat_id"
+    req = urllib.request.Request(
+        msg_url,
+        data=json.dumps(card).encode("utf-8"),
+        headers={"Content-Type": "application/json", "Authorization": f"Bearer {token}"},
+        method="POST"
+    )
     try:
         with urllib.request.urlopen(req, timeout=10) as resp:
-            result = json.loads(resp.read().decode())
-            if result.get("code") == 0 or result.get("StatusCode") == 0:
+            result = json.loads(resp.read())
+            if result.get("code") == 0:
                 print(f"✅ 推送成功: {step_title}")
             else:
                 print(f"⚠️ 推送失败: {result}")
@@ -78,10 +113,10 @@ if __name__ == "__main__":
         print("用法: python3 feishu_progress.py <标题> <内容> [颜色] [done]")
         print("例: python3 feishu_progress.py 'Step 1/5: 市场规模' 'GMV $57亿' blue")
         sys.exit(1)
-    
+
     title = sys.argv[1]
     content = sys.argv[2]
     color = sys.argv[3] if len(sys.argv) > 3 else "blue"
     done = sys.argv[4].lower() == "true" if len(sys.argv) > 4 else False
-    
+
     send_progress(title, content, color, done)

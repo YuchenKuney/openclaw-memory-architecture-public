@@ -1,0 +1,218 @@
+{
+  "action-1776691930-faef09": {
+    "path": "AGENTS.md",
+    "operation": "BLOCK",
+    "level": "HIGH",
+    "message": "[HIGH] 尝试删除 AGENTS.md",
+    "status": "approved",
+    "created_at": "2026-04-20 15:32:10",
+    "resolved_at": "2026-04-20 16:02:24"
+  },
+  "action-1776691946-7d0204": {
+    "path": "AGENTS.md",
+    "operation": "BLOCK",
+    "level": "HIGH",
+    "message": "[HIGH] 尝试删除 AGENTS.md",
+    "status": "approved",
+    "created_at": "2026-04-20 15:32:26",
+    "resolved_at": "2026-04-20 15:44:50"
+  },
+  "action-1776691980-864b9a": {
+    "path": "",
+    "operation": "BLOCK",
+    "level": "HIGH",
+    "message": "[自动检测] 读取 ~/.gitcredentials 获取 Token",
+    "status": "approved",
+    "created_at": "2026-04-20 15:33:00",
+    "resolved_at": "2026-04-20 15:42:10"
+  },
+  "critical-1776691981-5deea3": {
+    "path": "",
+    "operation": "BLOCK",
+    "level": "CRITICAL",
+    "message": "[自动检测] 删除 AGENTS.md 文件",
+    "status": "approved",
+    "created_at": "2026-04-20 15:33:01",
+    "resolved_at": "2026-04-20 15:33:02"
+  },
+  "action-1776692147-ad7b0a": {
+    "path": "~/.gitcredentials",
+    "operation": "BLOCK",
+    "level": "HIGH",
+    "message": "[HIGH] 尝试读取 gitcredentials",
+    "status": "approved",
+    "created_at": "2026-04-20 15:35:47",
+    "resolved_at": "2026-04-20 15:35:48"
+  },
+  "action-1776694540-80c9dd": {
+    "path": "AGENTS.md",
+    "operation": "BLOCK",
+    "level": "HIGH",
+    "message": "[HIGH] 尝试删除 AGENTS.md",
+    "status": "approved",
+    "created_at": "2026-04-20 16:15:40",
+    "resolved_at": "2026-04-20 16:22:00"
+  },
+  "low-1776695420-e63078": {
+    "path": "/test",
+    "operation": "ALLOW",
+    "level": "LOW",
+    "message": "[LOW] 读取日志文件",
+    "status": "approved",
+    "created_at": "2026-04-20 16:30:20",
+    "resolved_at": "2026-04-20 16:53:06"
+  },
+  "medium-1776695420-be3a7d": {
+    "path": "/test",
+    "operation": "ALLOW",
+    "level": "MEDIUM",
+    "message": "[MEDIUM] 修改配置文件",
+    "status": "approved",
+    "created_at": "2026-04-20 16:30:20",
+    "resolved_at": "2026-04-20 16:50:57"
+  },
+  "high-1776695421-69f78b": {
+    "path": "/test",
+    "operation": "ALLOW",
+    "level": "HIGH",
+    "message": "[HIGH] 读取 Token 文件",
+    "status": "approved",
+    "created_at": "2026-04-20 16:30:21",
+    "resolved_at": "2026-04-20 16:42:53"
+  },
+  "critical-1776695421-965401": {
+    "path": "/test",
+    "operation": "ALLOW",
+    "level": "CRITICAL",
+    "message": "[CRITICAL] 删除系统文件",
+    "status": "approved",
+    "created_at": "2026-04-20 16:30:21",
+    "resolved_at": "2026-04-20 16:35:42"
+  },
+  "high-1776822256-f482df": {
+    "path": "/root/.gitcredentials",
+    "operation": "ALLOW",
+    "level": "HIGH",
+    "message": "[工作模式] 🚨 [HIGH] 尝试读取：.gitcredentials",
+    "status": "pending",
+    "created_at": "2026-04-22 03:44:16"
+  },
+  "high-1776822309-7a4920": {
+    "path": "/root/.gitcredentials",
+    "operation": "ALLOW",
+    "level": "HIGH",
+    "message": "[工作模式] 🚨 [HIGH] 尝试读取：.gitcredentials",
+    "status": "pending",
+    "created_at": "2026-04-22 03:45:09"
+  },
+  "low-1776825163-beef89": {
+    "path": "/root/.openclaw/workspace/config.yaml",
+    "operation": "ALLOW",
+    "level": "LOW",
+    "message": "读取配置文件",
+    "status": "pending",
+    "created_at": "2026-04-22 04:32:43"
+  },
+  "medium-1776825164-085f53": {
+    "path": "/root/.openclaw/workspace/config.yaml",
+    "operation": "ALLOW",
+    "level": "MEDIUM",
+    "message": "修改配置文件",
+    "status": "pending",
+    "created_at": "2026-04-22 04:32:44"
+  },
+  "high-1776825165-f26366": {
+    "path": "/etc/environment",
+    "operation": "ALLOW",
+    "level": "HIGH",
+    "message": "读取凭证文件",
+    "status": "pending",
+    "created_at": "2026-04-22 04:32:45"
+  },
+  "critical-1776825165-a5cb83": {
+    "path": "/etc/passwd",
+    "operation": "ALLOW",
+    "level": "CRITICAL",
+    "message": "删除系统文件",
+    "status": "pending",
+    "created_at": "2026-04-22 04:32:45"
+  },
+  "low-1776825277-1cb6dd": {
+    "path": "/root/.openclaw/workspace/config.yaml",
+    "operation": "ALLOW",
+    "level": "LOW",
+    "message": "读取配置文件",
+    "status": "pending",
+    "created_at": "2026-04-22 04:34:37"
+  },
+  "medium-1776825278-106de9": {
+    "path": "/root/.openclaw/workspace/config.yaml",
+    "operation": "ALLOW",
+    "level": "MEDIUM",
+    "message": "修改配置文件",
+    "status": "pending",
+    "created_at": "2026-04-22 04:34:38"
+  },
+  "high-1776825279-1eda61": {
+    "path": "/etc/environment",
+    "operation": "ALLOW",
+    "level": "HIGH",
+    "message": "读取凭证文件",
+    "status": "pending",
+    "created_at": "2026-04-22 04:34:39"
+  },
+  "critical-1776825280-c3f5a7": {
+    "path": "/etc/passwd",
+    "operation": "ALLOW",
+    "level": "CRITICAL",
+    "message": "删除系统文件",
+    "status": "approved",
+    "created_at": "2026-04-22 04:34:40",
+    "resolved_at": "2026-04-22 05:09:22"
+  },
+  "low-1776825491-eddfc9": {
+    "path": "/root/config.yaml",
+    "operation": "ALLOW",
+    "level": "LOW",
+    "message": "读取配置",
+    "status": "approved",
+    "created_at": "2026-04-22 04:38:11",
+    "resolved_at": "2026-04-22 04:48:52"
+  },
+  "medium-1776825492-803b60": {
+    "path": "/root/config.yaml",
+    "operation": "ALLOW",
+    "level": "MEDIUM",
+    "message": "修改配置",
+    "status": "approved",
+    "created_at": "2026-04-22 04:38:12",
+    "resolved_at": "2026-04-22 05:03:33"
+  },
+  "high-1776825493-8dee1a": {
+    "path": "/etc/environment",
+    "operation": "ALLOW",
+    "level": "HIGH",
+    "message": "读取凭证",
+    "status": "approved",
+    "created_at": "2026-04-22 04:38:13",
+    "resolved_at": "2026-04-22 05:01:52"
+  },
+  "critical-1776825494-4c79b4": {
+    "path": "/etc/passwd",
+    "operation": "ALLOW",
+    "level": "CRITICAL",
+    "message": "删除系统文件",
+    "status": "approved",
+    "created_at": "2026-04-22 04:38:14",
+    "resolved_at": "2026-04-22 04:56:36"
+  },
+  "high-1776827497-3765e4": {
+    "path": "/root/.gitcredentials",
+    "operation": "READ",
+    "level": "HIGH",
+    "message": "AI 尝试读取 ~/.gitcredentials 获取 GitHub Token",
+    "status": "approved",
+    "created_at": "2026-04-22 05:11:37",
+    "resolved_at": "2026-04-22 05:11:46"
+  }
+}

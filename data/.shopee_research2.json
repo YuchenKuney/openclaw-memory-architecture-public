@@ -1,0 +1,27 @@
+{
+  "query": "Shopee Indonesia Vietnam Thailand Philippines Malaysia market share 2024",
+  "cooking_applied": {
+    "language": "en",
+    "avoid_sites": [],
+    "strategy": "brief",
+    "priority": "latest",
+    "extract_fields": [
+      "title",
+      "url",
+      "text"
+    ],
+    "max_pages": 5,
+    "headless": true,
+    "profile": "stealth",
+    "scroll_behavior": "normal",
+    "wait_time": 1.0,
+    "block_ads": true,
+    "stealth": true
+  },
+  "started_at": "2026-04-21T03:51:46.071623",
+  "finished_at": "2026-04-21T03:51:49.973854",
+  "pages_visited": [],
+  "total_pages": 0,
+  "results": [],
+  "errors": []
+}

@@ -1,0 +1,11 @@
+{
+  "monitor_pid": 850006,
+  "last_restart": "2026-04-22 17:52:08",
+  "restart_count": 18,
+  "last_heartbeat": "2026-04-23 08:33:59",
+  "monitor_alive": true,
+  "monitor_pids": {
+    "task_monitor": 1302517,
+    "task_agent": 1302516
+  }
+}

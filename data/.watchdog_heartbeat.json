@@ -1,0 +1,13 @@
+{
+  "alive": true,
+  "monitored": [
+    "task_monitor",
+    "task_agent"
+  ],
+  "pids": {
+    "task_monitor": 1302517,
+    "task_agent": 1302516
+  },
+  "updated": "2026-04-23 08:33:59",
+  "restarts": 18
+}

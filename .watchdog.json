@@ -1,0 +1,9 @@
+{
+  "archive_threshold": 10,
+  "distill_days": 7,
+  "check_interval_hours": 6,
+  "auto_cleanup_enabled": true,
+  "decisions_log_max": 100,
+  "last_check": "2026-04-27T00:00:02.351331",
+  "last_distill": "2026-04-23T12:00:02.790160"
+}

@@ -1,0 +1,80 @@
+{
+  "msg_type": "interactive",
+  "card": {
+    "header": {
+      "title": {
+        "tag": "plain_text",
+        "content": "🛒 Shopee 东南亚市场营销调研报告"
+      },
+      "template": "blue"
+    },
+    "elements": [
+      {
+        "tag": "markdown",
+        "content": "**📊 数据来源**：训练知识库（截止 2024年中，部分数据可能已更新）"
+      },
+      {
+        "tag": "hr"
+      },
+      {
+        "tag": "markdown",
+        "content": "**🌏 六国市场概览**"
+      },
+      {
+        "tag": "markdown",
+        "content": "```\n印尼 🇮🇩  - 2.77亿人口 | 最大市场 | Shopee/Lazada/Tokopedia 三足鼎立\n越南 🇻🇳  - 9800万人口 | 增速最快 | Shopee 主导地位\n泰国 🇹🇭  - 7000万人口 | Lazada 强竞争 | Shopee 排名第二\n菲律宾 🇵🇭 - 1.17亿人口 | 移动端为主 | Shopee 领先地位\n马来西亚 🇲🇾 - 3300万人口 | 高人均网购 | Shopee vs Lazada 平分秋色\n新加坡 🇸🇬 - 590万人口 | 成熟市场 | Lazada 高端占优\n```"
+      },
+      {
+        "tag": "hr"
+      },
+      {
+        "tag": "markdown",
+        "content": "**🏆 Shopee 核心竞争优势**"
+      },
+      {
+        "tag": "markdown",
+        "content": "✅ **低价策略**：Free Shipping + 大额优惠券\n✅ **社交电商**：内置游戏化（Shopee Games）+ 直播带货\n✅ **本地化运营**：每个国家独立 App + 本地支付（GrabPay/OVO）\n✅ **物流基建**：SLS 自建物流（Shopee Logistics Service）\n✅ **流量获取**：重金签约当地明星代言（泰国 Bella/越南 Minho）"
+      },
+      {
+        "tag": "hr"
+      },
+      {
+        "tag": "markdown",
+        "content": "**📌 主要竞品分析**"
+      },
+      {
+        "tag": "markdown",
+        "content": "🔴 **Lazada（阿里系）**\n   优势：淘宝供应链，天猫国际品牌资源\n   弱点：本地化不足，App 体验差\n   \n🟡 **Tokopedia（阿里系，印尼）**\n   优势：C2C 强，本地信任度高\n   弱点：被 Shopee 挤压严重\n   \n🟢 **TikTok Shop（字节跳动）**\n   优势：直播电商爆发力强，内容算法强\n   威胁：Shopee 最大潜在竞争对手（2023-2024年在各国快速增长）"
+      },
+      {
+        "tag": "hr"
+      },
+      {
+        "tag": "markdown",
+        "content": "**⚠️ Shopee 主要挑战**"
+      },
+      {
+        "tag": "markdown",
+        "content": "1. **TikTok Shop 崛起**：2023年东南亚电商增速第一\n2. **烧钱模式**：Sea (Shopee母公司) 持续亏损，压力巨大\n3. **印尼限制进口**：2023年政府限制100美元以下进口商品\n4. **泰国假货问题**：品牌保护压力大\n5. **越南价格战**：与 TikTok/Lazada 三角竞争"
+      },
+      {
+        "tag": "hr"
+      },
+      {
+        "tag": "markdown",
+        "content": "**💡 选国建议（针对跨境卖家）**"
+      },
+      {
+        "tag": "markdown",
+        "content": "🥇 **首推：越南**\n   - 人口红利大（年轻人多），电商增速最快\n   - Shopee 主导，用户基础好\n   - 竞争不如印尼激烈\n\n🥈 **次推：菲律宾**\n   - 人口基数大，移动端网购增长快\n   - 英语市场，门槛低\n   - 物流在改善中\n\n⚠️ **谨慎：印尼**\n   - 最大市场但政策风险高（限进口、限外资）\n   - 本地平台 Tokopedia 更占优\n\n⚠️ **谨慎：新加坡**\n   - 太小众，高端市场被 Lazada 占\n   - 获客成本高"
+      },
+      {
+        "tag": "hr"
+      },
+      {
+        "tag": "markdown",
+        "content": "_📝 数据截止 2024年中，TikTok Shop 2025年数据可能有较大变化_"
+      }
+    ]
+  }
+}

@@ -1,0 +1,29 @@
+{
+  "nodes": [
+    {
+      "name": "brain",
+      "vpn_ip": "10.0.0.1",
+      "public_ip": "",
+      "public_key": "",
+      "role": "brain",
+      "last_heartbeat": "2026-04-27T08:27:41.924555",
+      "status": "online",
+      "capabilities": [
+        "orchestrate",
+        "decide",
+        "remember",
+        "communicate"
+      ]
+    },
+    {
+      "name": "singapore",
+      "vpn_ip": "10.0.0.2",
+      "public_ip": "178.128.52.85",
+      "public_key": "",
+      "role": "worker",
+      "last_heartbeat": "2026-04-27T08:34:02.789460",
+      "status": "online",
+      "capabilities": []
+    }
+  ]
+}

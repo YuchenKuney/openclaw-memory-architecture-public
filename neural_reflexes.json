@@ -1,0 +1,34 @@
+{
+  "arcs": [
+    {
+      "arc_id": "cpu_high_alert",
+      "name": "CPU过载告警",
+      "condition_type": "cpu",
+      "condition_threshold": 80,
+      "condition_comparison": ">=",
+      "action_type": "alert",
+      "action_params": {
+        "message": "CPU使用率超过80%"
+      },
+      "enabled": true,
+      "description": "CPU超过80%时自动告警",
+      "trigger_count": 0,
+      "last_triggered": null
+    },
+    {
+      "arc_id": "disk_low_cleanup",
+      "name": "磁盘不足自动清理",
+      "condition_type": "disk",
+      "condition_threshold": 10,
+      "condition_comparison": "<=",
+      "action_type": "exec",
+      "action_params": {
+        "command": "rm -rf /tmp/*.log /root/.openclaw/workspace/logs/*.log 2>/dev/null; echo cleaned"
+      },
+      "enabled": true,
+      "description": "磁盘空间低于10%时自动清理临时文件",
+      "trigger_count": 0,
+      "last_triggered": null
+    }
+  ]
+}

@@ -65,6 +65,7 @@ try:
     from cryptography.hazmat.primitives.asymmetric.x25519 import X25519PrivateKey, X25519PublicKey
     from cryptography.hazmat.primitives.kdf.hkdf import HKDF
     from cryptography.hazmat.primitives import hashes
+    from cryptography.hazmat.primitives.serialization import Encoding, PublicFormat
     from cryptography.hazmat.backends import default_backend
     HAS_NOISE = True
 except ImportError:
@@ -112,10 +113,7 @@ class NoiseHandshake:
         else:
             self.static_private = X25519PrivateKey.generate()
         self.static_public = self.static_private.public_key()
-        return self.static_public.public_bytes(
-            encoding=None,  # raw bytes
-            format=None
-        )
+        return self.static_public.public_bytes(Encoding.Raw, PublicFormat.Raw)
 
     def initiate_handshake(self, peer_static_public: bytes = None) -> Tuple[bytes, bytes]:
         """
@@ -127,7 +125,7 @@ class NoiseHandshake:
         # 生成临时密钥对
         self.ephemeral_private = X25519PrivateKey.generate()
         self.ephemeral_public = self.ephemeral_private.public_key()
-        e_pub = self.ephemeral_public.public_bytes(encoding=None, format=None)
+        e_pub = self.ephemeral_public.public_bytes(Encoding.Raw, PublicFormat.Raw)
 
         # 如果有对等方静态公钥，先做一轮DH
         if peer_static_public:
@@ -136,7 +134,7 @@ class NoiseHandshake:
         # init_payload = 静态公钥（如果有）
         init_payload = b""
         if self.static_public:
-            init_payload = self.static_public.public_bytes(encoding=None, format=None)
+            init_payload = self.static_public.public_bytes(Encoding.Raw, PublicFormat.Raw)
 
         # 更新handshake_hash
         self._mix_hash(e_pub + init_payload)
@@ -185,7 +183,7 @@ class NoiseHandshake:
         # 生成自己的临时密钥对
         self.ephemeral_private = X25519PrivateKey.generate()
         self.ephemeral_public = self.ephemeral_private.public_key()
-        re_pub = self.ephemeral_public.public_bytes(encoding=None, format=None)
+        re_pub = self.ephemeral_public.public_bytes(Encoding.Raw, PublicFormat.Raw)
 
         # DH(e, re) - 临时密钥DH
         peer_epub = X25519PublicKey.from_public_bytes(peer_ephemeral_pub)

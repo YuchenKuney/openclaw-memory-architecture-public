@@ -118,6 +118,8 @@ openclaw-memory-architecture/
 │   └── watcher.py              # inotify 文件变化监控
 ├── scripts/
 │   ├── skill_factory.py         # AI 自进化技能工厂
+│   ├── neural_tunnel.py         # UDP私有神经隧道（WireGuard替代）
+│   ├── neural_tunnel_tun.py     # TUN虚拟网卡（系统流量劫持）
 │   ├── task_watchdog.py        # 看门狗（进程守护）
 │   ├── task_monitor.py         # 任务状态监控
 │   ├── task_monitor_agent.py   # 任务汇报 Agent
@@ -153,6 +155,10 @@ python3 demo.py --demo ecommerce --scenario  # 电商记忆演进
 
 # 查看 Skill Factory 独立仓库（推荐）
 cd skill-factory-repo/skill_factory_standalone
+
+# Neural Tunnel（需要root）
+sudo python3 scripts/neural_tunnel_tun.py hub    # Hub中枢
+sudo python3 scripts/neural_tunnel_tun.py node   # Node节点
 ```
 
 ### Demo 审批系统
@@ -230,6 +236,54 @@ system_action → 系统动作
 | **v10** | **反黑箱通知铁律落地 + 看门狗自动拉起子 agent** |
 | **v11** | **StepReporter 全链路透明化 + Web4.0 stealth 加强** |
 | **v12** | **Skill Factory v12 完整实现 + AI 自进化技能工厂** |
+
+---
+
+## 🔐 Neural Tunnel Protocol（WireGuard替代）
+
+> 自研 UDP 私有神经隧道，彻底替代 WireGuard
+
+### 核心特性
+
+| 特性 | 实现 |
+|------|------|
+| **架构** | 全中心化 Hub-Spoke，所有流量收敛到中枢 |
+| **密钥交换** | Noise Protocol (X25519 + HKDF-SHA256) |
+| **端到端加密** | ChaCha20-Poly1305 AEAD |
+| **完整性** | HMAC-SHA256 防篡改 |
+| **防重放** | 时间戳（5分钟窗口）+ 序列号 |
+| **分片** | 自动分片重组，MTU=1400 |
+| **重传** | ARQ滑动窗口，最多5次重传 |
+| **心跳** | 30秒保活，5分钟超时踢出 |
+| **TUN网卡** | 虚拟网卡，系统级流量劫持 |
+
+### 握手流程（2-RTT）
+
+```
+Node                        Hub
+──────────────────────────────────
+INIT(s_pub, e_pub)     ──→  (静态+临时公钥)
+                     ←──  ACK(re_pub, es_proof)
+FIN(e_pub, ee, se)    ──→  (完成证明)
+```
+
+### 安全属性
+
+- **前向保密**：临时密钥保护，私钥泄露不影响历史
+- **双向认证**：静态密钥实现节点身份验证
+- **防中间人**：双方DH贡献确保密钥协商安全
+
+### 使用方式
+
+```bash
+# Hub（需要root）
+sudo python3 scripts/neural_tunnel_tun.py hub
+
+# Node（需要root）
+sudo python3 scripts/neural_tunnel_tun.py node
+```
+
+详细实现：`scripts/neural_tunnel.py` + `scripts/neural_tunnel_tun.py`
 
 ---
 

@@ -20,9 +20,11 @@ if os.path.exists('/etc/environment'):
                 v = v.strip('"')
                 os.environ.setdefault(k, v)
 
-APP_ID = os.environ.get("FEISHU_APP_ID", "cli_a96c9b5700f91bc9")
-APP_SECRET = os.environ.get("FEISHU_APP_SECRET", "")
-GROUP_ID = os.environ.get("FEISHU_GROUP_ID", "oc_0533b03e077fedca255c4d2c6717deea")
+# Webhook方式（优先，坤哥配置）
+WEBHOOK_URL = os.environ.get(
+    "FEISHU_WEBHOOK",
+    "https://open.feishu.cn/open-apis/bot/v2/hook/e1e47866-19f3-4851-a954-68bda533e990"
+)
 
 TEMPLATE_COLORS = {
     "blue": "blue",
@@ -32,23 +34,8 @@ TEMPLATE_COLORS = {
     "orange": "orange",
 }
 
-def get_token():
-    url = "https://open.feishu.cn/open-apis/auth/v3/tenant_access_token/internal"
-    data = json.dumps({"app_id": APP_ID, "app_secret": APP_SECRET}).encode("utf-8")
-    req = urllib.request.Request(url, data=data, headers={"Content-Type": "application/json"})
-    try:
-        with urllib.request.urlopen(req, timeout=10) as resp:
-            result = json.loads(resp.read())
-            if result.get("code") != 0:
-                print(f"Token failed: {result}")
-                return None
-            return result["tenant_access_token"]
-    except Exception as e:
-        print(f"Token error: {e}")
-        return None
-
 def send_progress(step_title: str, content: str, color: str = "blue", done: bool = False):
-    """发送进度卡片到飞书群"""
+    """发送进度卡片到飞书群（使用Webhook）"""
     color = TEMPLATE_COLORS.get(color, "blue")
 
     if done:
@@ -64,44 +51,40 @@ def send_progress(step_title: str, content: str, color: str = "blue", done: bool
     else:
         emoji = "🔄"
 
+    # 构建卡片消息
     card = {
-        "receive_id": GROUP_ID,
-        "msg_type": "interactive",
-        "content": json.dumps({
-            "config": {"wide_screen_mode": True},
-            "header": {
-                "title": {"tag": "plain_text", "content": f"{emoji} {step_title}"},
-                "template": color
-            },
-            "elements": [
-                {"tag": "markdown", "content": content},
-                {"tag": "hr"},
-                {
-                    "tag": "note",
-                    "elements": [
-                        {"tag": "plain_text", "content": f"AI 调研进度 · {datetime.now().strftime('%H:%M:%S')}"}
-                    ]
-                }
-            ]
-        }, ensure_ascii=False)
+        "config": {"wide_screen_mode": True},
+        "header": {
+            "title": {"tag": "plain_text", "content": f"{emoji} {step_title}"},
+            "template": color
+        },
+        "elements": [
+            {"tag": "markdown", "content": content},
+            {"tag": "hr"},
+            {
+                "tag": "note",
+                "elements": [
+                    {"tag": "plain_text", "content": f"AI 调研进度 · {datetime.now().strftime('%H:%M:%S')}"}
+                ]
+            }
+        ]
     }
 
-    token = get_token()
-    if not token:
-        print("❌ 无法获取token")
-        return
+    data = {
+        "msg_type": "interactive",
+        "card": card
+    }
 
-    msg_url = "https://open.feishu.cn/open-apis/im/v1/messages?receive_id_type=chat_id"
     req = urllib.request.Request(
-        msg_url,
-        data=json.dumps(card).encode("utf-8"),
-        headers={"Content-Type": "application/json", "Authorization": f"Bearer {token}"},
+        WEBHOOK_URL,
+        data=json.dumps(data, ensure_ascii=False).encode("utf-8"),
+        headers={"Content-Type": "application/json"},
         method="POST"
     )
     try:
         with urllib.request.urlopen(req, timeout=10) as resp:
             result = json.loads(resp.read())
-            if result.get("code") == 0:
+            if result.get("code") == 0 or result.get("StatusCode") == 0:
                 print(f"✅ 推送成功: {step_title}")
             else:
                 print(f"⚠️ 推送失败: {result}")

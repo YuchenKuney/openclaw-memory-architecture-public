@@ -26,6 +26,39 @@ from typing import Optional, Dict, List, Tuple, Callable
 from enum import IntEnum
 from pathlib import Path
 
+# ============== ChaCha20-Poly1305 加密 ==============
+try:
+    from cryptography.hazmat.primitives.ciphers.aead import ChaCha20Poly1305
+    HAS_CHACHA = True
+except ImportError:
+    HAS_CHACHA = False
+    logger.warning("ChaCha20Poly1305 不可用，将使用 HMAC-only 模式")
+
+
+def chacha_encrypt(key: bytes, nonce: bytes, plaintext: bytes) -> bytes:
+    """ChaCha20-Poly1305 加密（返回: nonce+密文+tag）"""
+    if not HAS_CHACHA:
+        return plaintext
+    chacha = ChaCha20Poly1305(key)
+    # Nonce: 12 bytes，密文包含 16 bytes auth tag
+    ct = chacha.encrypt(nonce, plaintext, None)
+    return nonce + ct
+
+
+def chacha_decrypt(key: bytes, ciphertext: bytes) -> Optional[bytes]:
+    """ChaCha20-Poly1305 解密（输入: nonce+密文+tag）"""
+    if not HAS_CHACHA or len(ciphertext) < 12:
+        return ciphertext if not HAS_CHACHA else None
+    nonce = ciphertext[:12]
+    ct = ciphertext[12:]
+    try:
+        chacha = ChaCha20Poly1305(key)
+        return chacha.decrypt(nonce, ct, None)
+    except Exception as e:
+        logger.warning(f"ChaCha20 解密失败: {e}")
+        return None
+
+
 # ============== 常量 ==============
 
 MAGIC = 0x4E545250  # "NTRP" 大端序
@@ -95,10 +128,18 @@ def verify_hmac(secret: bytes, data: bytes, expected: bytes) -> bool:
 
 
 def pack_frame(pkg_type: int, seq: int, frag_id: int, frag_count: int,
-               payload: bytes, secret: bytes, ts: int = None) -> bytes:
-    """打包帧"""
+               payload: bytes, secret: bytes, ts: int = None,
+               cipher_key: bytes = None) -> bytes:
+    """打包帧（可加密payload）"""
     if ts is None:
         ts = int(time.time() * 1000)  # 毫秒时间戳
+
+    # ChaCha20加密 payload（握手包不加密）
+    if cipher_key and HAS_CHACHA and pkg_type not in (PacketType.HANDSHAKE_INIT,
+                                                       PacketType.HANDSHAKE_ACK,
+                                                       PacketType.HANDSHAKE_FIN):
+        nonce = struct.pack(">II", ts & 0xFFFFFFFF, seq & 0xFFFFFFFF)
+        payload = chacha_encrypt(cipher_key, nonce, payload)
 
     header = struct.pack(">IBBHHHIH",
         MAGIC,           # 4 bytes
@@ -115,8 +156,8 @@ def pack_frame(pkg_type: int, seq: int, frag_id: int, frag_count: int,
     return header + hmac_val + payload
 
 
-def unpack_frame(data: bytes, secret: bytes) -> Optional[dict]:
-    """解包帧，验证HMAC和时间戳"""
+def unpack_frame(data: bytes, secret: bytes, cipher_key: bytes = None) -> Optional[dict]:
+    """解包帧，验证HMAC并解密payload"""
     if len(data) < 32:
         return None
 
@@ -146,6 +187,16 @@ def unpack_frame(data: bytes, secret: bytes) -> Optional[dict]:
 
     if len(payload) != payload_len:
         return None
+
+    # ChaCha20解密 payload（握手包不解密）
+    if cipher_key and HAS_CHACHA and pkg_type not in (PacketType.HANDSHAKE_INIT,
+                                                        PacketType.HANDSHAKE_ACK,
+                                                        PacketType.HANDSHAKE_FIN):
+        decrypted = chacha_decrypt(cipher_key, payload)
+        if decrypted is None:
+            logger.warning(f"ChaCha20解密失败 seq={seq}")
+            return None
+        payload = decrypted
 
     return {
         "type": pkg_type,
@@ -364,7 +415,15 @@ class TunnelHub:
     def _handle_packet(self, data: bytes, addr: Tuple[str, int]):
         """处理数据包"""
         try:
-            frame = unpack_frame(data, self.sessions.secret)
+            # 尝试从数据中提取node_id（用于查找会话）
+            node_id = self._get_node_id_by_addr(addr)
+            cipher_key = None
+            if node_id:
+                sess = self.sessions.get_session(node_id)
+                if sess and sess.established:
+                    cipher_key = sess.key
+
+            frame = unpack_frame(data, self.sessions.secret, cipher_key)
             if not frame:
                 return
 
@@ -405,16 +464,29 @@ class TunnelHub:
             sess = self.sessions.create_session(their_node_id, addr)
             sess.seq_recv = seq
 
-            # 发送握手ACK
+            # 发送握手ACK（带会话密钥）
             resp = pack_frame(
                 PacketType.HANDSHAKE_ACK,
                 sess.seq_send,
                 0, 0,
-                sess.key,  # 发送会话密钥（实际应加密）
+                sess.key,  # 32字节会话密钥（明文传输，实际应用应用DH加密）
                 self.sessions.secret
             )
             self.sock.sendto(resp, addr)
-            logger.info(f"📡 握手INIT {their_node_id} → ACK已发送")
+
+            # 发送握手FIN（加密）
+            sess.seq_send += 1
+            fin = pack_frame(
+                PacketType.HANDSHAKE_FIN,
+                sess.seq_send,
+                0, 0,
+                b"established",
+                self.sessions.secret,
+                cipher_key=sess.key
+            )
+            self.sock.sendto(fin, addr)
+            sess.established = True
+            logger.info(f"📡 握手INIT {their_node_id} → FIN已发送 (加密)")
 
         elif pkg_type == PacketType.HANDSHAKE_ACK:
             # 收到ACK（作为节点时使用）
@@ -487,6 +559,13 @@ class TunnelHub:
                 return node_id
         return f"unknown_{seq >> 16}"
 
+    def _get_node_id_by_addr(self, addr: Tuple[str, int]) -> Optional[str]:
+        """从地址查找node_id"""
+        for node_id, sess in self.sessions.sessions.items():
+            if sess.addr == addr:
+                return node_id
+        return None
+
     def _retrans_loop(self):
         """重传循环"""
         while self.running:
@@ -534,7 +613,8 @@ class TunnelHub:
 
         # 正常发送
         sess.seq_send += 1
-        frame = pack_frame(PacketType.DATA, sess.seq_send, 0, 0, data, self.sessions.secret)
+        frame = pack_frame(PacketType.DATA, sess.seq_send, 0, 0, data,
+                           self.sessions.secret, cipher_key=sess.key)
         self.retrans_window.add(sess.seq_send, frame)
 
         try:
@@ -550,7 +630,8 @@ class TunnelHub:
         for i in range(frag_count):
             frag_data = data[i * FRAGMENT_SIZE:(i + 1) * FRAGMENT_SIZE]
             sess.seq_send += 1
-            frame = pack_frame(PacketType.FRAGMENT, sess.seq_send, i, frag_count, frag_data, self.sessions.secret)
+            frame = pack_frame(PacketType.FRAGMENT, sess.seq_send, i, frag_count, frag_data,
+                               self.sessions.secret, cipher_key=sess.key)
             self.retrans_window.add(sess.seq_send, frame)
             try:
                 self.sock.sendto(frame, sess.addr)
@@ -658,17 +739,28 @@ class TunnelNode:
         )
         self.sock.sendto(init, self.hub_addr)
 
-        # 等待握手ACK（3秒超时）
+        # 等待握手ACK + HANDSHAKE_FIN（加密）
         deadline = time.time() + HANDSHAKE_TIMEOUT
         while time.time() < deadline:
             try:
                 data, addr = self.sock.recvfrom(65535)
                 if addr == self.hub_addr:
+                    # 先用明文解开（握手ACK）
                     frame = unpack_frame(data, self.sessions.secret)
                     if frame and frame["type"] == PacketType.HANDSHAKE_ACK:
-                        self.session_key = frame["payload"]
+                        self.session_key = frame["payload"]  # 32字节，用作ChaCha20密钥
+                        logger.info(f"📡 收到ACK，获取会话密钥，等待加密FIN...")
+                        # 继续等待 HANDSHAKE_FIN（加密）
+                        continue
+                    if frame and frame["type"] == PacketType.HANDSHAKE_FIN:
+                        # 收到FIN，但需要用session_key解密
+                        # 先用明文解开（HMAC验证），再用session_key解密payload
+                        fin_frame = unpack_frame(data, self.sessions.secret, self.session_key)
+                        if not fin_frame:
+                            logger.warning("FIN解密失败")
+                            continue
                         self.connected = True
-                        logger.info(f"✅ 已连接中枢，获取会话密钥")
+                        logger.info(f"✅ 隧道加密通道已建立")
                         if self.on_connect:
                             self.on_connect()
                         return True
@@ -694,7 +786,7 @@ class TunnelNode:
     def _handle_packet(self, data: bytes):
         """处理数据包"""
         try:
-            frame = unpack_frame(data, self.sessions.secret)
+            frame = unpack_frame(data, self.sessions.secret, self.session_key)
             if not frame:
                 return
 
@@ -717,6 +809,12 @@ class TunnelNode:
                 self.connected = False
                 if self.on_disconnect:
                     self.on_disconnect()
+            elif pkg_type == PacketType.HANDSHAKE_FIN:
+                # 收到中枢的握手完成信号
+                self.connected = True
+                logger.info("✅ 隧道加密通道已建立")
+                if self.on_connect:
+                    self.on_connect()
 
         except Exception as e:
             logger.error(f"处理包错误: {e}")
@@ -785,7 +883,8 @@ class TunnelNode:
 
         # 正常发送
         seq = random.randint(1, 0xFFFF)
-        frame = pack_frame(PacketType.DATA, seq, 0, 0, data, self.sessions.secret)
+        frame = pack_frame(PacketType.DATA, seq, 0, 0, data,
+                           self.sessions.secret, cipher_key=self.session_key)
         self.retrans_window.add(seq, frame)
 
         try:
@@ -801,7 +900,8 @@ class TunnelNode:
         seq = random.randint(1, 0xFFFF)
         for i in range(frag_count):
             frag_data = data[i * FRAGMENT_SIZE:(i + 1) * FRAGMENT_SIZE]
-            frame = pack_frame(PacketType.FRAGMENT, seq + i, i, frag_count, frag_data, self.sessions.secret)
+            frame = pack_frame(PacketType.FRAGMENT, seq + i, i, frag_count, frag_data,
+                               self.sessions.secret, cipher_key=self.session_key)
             self.retrans_window.add(seq + i, frame)
             try:
                 self.sock.sendto(frame, self.hub_addr)

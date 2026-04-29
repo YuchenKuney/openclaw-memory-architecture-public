@@ -59,6 +59,209 @@ def chacha_decrypt(key: bytes, ciphertext: bytes) -> Optional[bytes]:
         return None
 
 
+# ============== Noise Protocol (X25519 + HKDF) ==============
+
+try:
+    from cryptography.hazmat.primitives.asymmetric.x25519 import X25519PrivateKey, X25519PublicKey
+    from cryptography.hazmat.primitives.kdf.hkdf import HKDF
+    from cryptography.hazmat.primitives import hashes
+    from cryptography.hazmat.backends import default_backend
+    HAS_NOISE = True
+except ImportError:
+    HAS_NOISE = False
+    logger.warning("Noise Protocol 不可用")
+
+
+class NoiseKeys:
+    """Noise握手派生的会话密钥"""
+    def __init__(self, send_key: bytes, recv_key: bytes, chaining_key: bytes):
+        self.send_key = send_key      # 发送密钥（ChaCha20）
+        self.recv_key = recv_key      # 接收密钥（ChaCha20）
+        self.chaining_key = chaining_key  # 链密钥（用于再派生）
+
+
+class NoiseHandshake:
+    """
+    简化版 Noise_XX 握手实现
+
+    流程（2-RTT）：
+      Node                         Hub
+       ────                        ────
+    1. INIT(s, e)       →         (收到静态公钥s，生成临时DH对)
+    2.                 ←   ACK(re, es)   (临时公钥re，用e和s派生存密钥)
+    3. FIN(e, ee, se)   →           (发送e和ee+se的证据)
+
+    派生存密钥: HKDF-SHA256( DH(e,re) || DH(e,s) || DH(s,re) )
+    """
+
+    def __init__(self, is_initiator: bool):
+        self.is_initiator = is_initiator
+        self.static_private: Optional[X25519PrivateKey] = None
+        self.static_public: Optional[X25519PublicKey] = None
+        self.ephemeral_private: Optional[X25519PrivateKey] = None
+        self.ephemeral_public: Optional[X25519PublicKey] = None
+        self.peer_static: Optional[bytes] = None
+        self.peer_ephemeral: Optional[bytes] = None
+        self.session_keys: Optional[NoiseKeys] = None
+        self.handshake_hash = b""
+
+    def generate_static_keypair(self, private_bytes: bytes = None) -> bytes:
+        """生成或加载静态密钥对，返回公钥"""
+        if private_bytes:
+            self.static_private = X25519PrivateKey.from_private_bytes(private_bytes)
+        else:
+            self.static_private = X25519PrivateKey.generate()
+        self.static_public = self.static_private.public_key()
+        return self.static_public.public_bytes(
+            encoding=None,  # raw bytes
+            format=None
+        )
+
+    def initiate_handshake(self, peer_static_public: bytes = None) -> Tuple[bytes, bytes]:
+        """
+        发起握手第一步（Initiator）
+        返回: (init_payload, ephemeral_public)
+        - init_payload: 包含静态公钥（可选加密）
+        - ephemeral_public: 临时公钥（32 bytes）
+        """
+        # 生成临时密钥对
+        self.ephemeral_private = X25519PrivateKey.generate()
+        self.ephemeral_public = self.ephemeral_private.public_key()
+        e_pub = self.ephemeral_public.public_bytes(encoding=None, format=None)
+
+        # 如果有对等方静态公钥，先做一轮DH
+        if peer_static_public:
+            self.peer_static = peer_static_public
+
+        # init_payload = 静态公钥（如果有）
+        init_payload = b""
+        if self.static_public:
+            init_payload = self.static_public.public_bytes(encoding=None, format=None)
+
+        # 更新handshake_hash
+        self._mix_hash(e_pub + init_payload)
+
+        return init_payload, e_pub
+
+    def process_handshake_response(self, response: bytes, peer_ephemeral: bytes) -> bool:
+        """
+        处理响应（Initiator第二步）
+        response: Hub返回的加密payload
+        peer_ephemeral: Hub的临时公钥
+        返回: 是否成功
+        """
+        self.peer_ephemeral = peer_ephemeral
+
+        # DH(e, re) - 临时密钥DH
+        dh1 = self._dh(self.ephemeral_private, peer_ephemeral)
+
+        # DH(s, re) - 静态密钥与对方临时密钥DH
+        if self.static_private and peer_ephemeral:
+            peer_pub = X25519PublicKey.from_public_bytes(peer_ephemeral)
+            dh2 = self._dh(self.static_private, peer_pub)
+        else:
+            dh2 = b"\x00" * 32
+
+        # 派生会话密钥
+        self._derive_keys(dh1 + dh2)
+
+        # 如果response有加密内容（FIN），解密验证
+        if len(response) > 0:
+            self._mix_hash(response)
+
+        return True
+
+    def respond_handshake(self, init_payload: bytes, peer_ephemeral_pub: bytes) -> Tuple[bytes, bytes]:
+        """
+        响应握手（Responder第一步）
+        返回: (ack_payload, ephemeral_public)
+        """
+        # 保存对等方的临时公钥
+        self.peer_ephemeral = peer_ephemeral_pub
+        # 解析对等方静态公钥
+        if len(init_payload) == 32:
+            self.peer_static = init_payload
+
+        # 生成自己的临时密钥对
+        self.ephemeral_private = X25519PrivateKey.generate()
+        self.ephemeral_public = self.ephemeral_private.public_key()
+        re_pub = self.ephemeral_public.public_bytes(encoding=None, format=None)
+
+        # DH(e, re) - 临时密钥DH
+        peer_epub = X25519PublicKey.from_public_bytes(peer_ephemeral_pub)
+        dh1 = self._dh(self.ephemeral_private, peer_epub)
+
+        # DH(s, re) - 静态密钥与对方临时密钥DH
+        dh2 = b"\x00" * 32
+        if self.static_private and peer_ephemeral_pub:
+            dh2 = self._dh(self.static_private, peer_epub)
+
+        # 派生会话密钥
+        self._derive_keys(dh1 + dh2)
+
+        # ACK payload = re_pub || 可选加密数据
+        ack_payload = re_pub
+
+        # 更新handshake_hash
+        self._mix_hash(peer_ephemeral_pub + init_payload + ack_payload)
+
+        return ack_payload, re_pub
+
+    def finalize_handshake(self, fin_payload: bytes = b"") -> bool:
+        """
+        完成握手（Initiator第二步发送FIN后调用）
+        """
+        if fin_payload:
+            self._mix_hash(fin_payload)
+        return True
+
+    def _dh(private_key: X25519PrivateKey, peer_public_bytes: bytes) -> bytes:
+        """执行DH计算"""
+        peer_pub = X25519PublicKey.from_public_bytes(peer_public_bytes)
+        shared = private_key.exchange(peer_pub)
+        return shared
+
+    def _mix_hash(self, data: bytes):
+        """混合到handshake_hash"""
+        if HAS_NOISE:
+            from cryptography.hazmat.primitives import hashes
+            from cryptography.hazmat.backends import default_backend
+            import hashlib
+            self.handshake_hash = hashlib.sha256(self.handshake_hash + data).digest()
+
+    def _derive_keys(self, ikm: bytes):
+        """HKDF-SHA256派生会话密钥"""
+        if not HAS_NOISE:
+            self.session_keys = NoiseKeys(ikm[:32], ikm[32:64], ikm)
+            return
+
+        hkdf = HKDF(
+            algorithm=hashes.SHA256(),
+            length=64,
+            salt=self.handshake_hash or None,
+            info=b"neural_tunnel_v1",
+            backend=default_backend()
+        )
+        derived = hkdf.derive(ikm)
+        self.session_keys = NoiseKeys(
+            send_key=derived[:32],
+            recv_key=derived[32:64],
+            chaining_key=derived
+        )
+
+
+def noise_encrypt_with_key(key: bytes, plaintext: bytes, nonce_prefix: bytes = b"") -> bytes:
+    """用Noise派生的密钥加密"""
+    import os
+    nonce = nonce_prefix + os.urandom(12 - len(nonce_prefix))
+    return chacha_encrypt(key, nonce, plaintext)
+
+
+def noise_decrypt_with_key(key: bytes, ciphertext: bytes) -> Optional[bytes]:
+    """用Noise派生的密钥解密"""
+    return chacha_decrypt(key, ciphertext)
+
+
 # ============== 常量 ==============
 
 MAGIC = 0x4E545250  # "NTRP" 大端序
@@ -215,7 +418,7 @@ class Session:
     """隧道会话"""
     node_id: str
     addr: Tuple[str, int]
-    key: bytes = field(default_factory=lambda: os.urandom(32))
+    key: bytes = field(default_factory=lambda: os.urandom(32))  # ChaCha20密钥（Noise后替换）
     seq_send: int = 0
     seq_recv: int = 0
     last_seen: float = field(default_factory=time.time)
@@ -223,6 +426,10 @@ class Session:
     frag_buffer: Dict[int, bytes] = field(default_factory=dict)
     frag_count: int = 0
     pending_acks: set = field(default_factory=set)  # 待确认的序列号
+    # Noise握手相关
+    noise: Optional[NoiseHandshake] = None
+    peer_static_pub: Optional[bytes] = None
+    peer_ephemeral_pub: Optional[bytes] = None
 
 
 class SessionManager:
@@ -356,13 +563,18 @@ class TunnelHub:
     支持：加密握手 / 数据转发 / 分片重组 / 重传控制
     """
 
-    def __init__(self, listen_port: int = 9527):
+    def __init__(self, listen_port: int = 9527, static_private_bytes: bytes = None):
         self.port = listen_port
         self.sock = None
         self.running = False
         self.sessions = SessionManager()
         self.retrans_window = RetransmitWindow()
         self.frag_assembler = FragmentAssembler()
+
+        # Noise静态密钥对（Hub的长期身份密钥）
+        self.noise = NoiseHandshake(is_initiator=False)
+        self.static_pub_bytes = self.noise.generate_static_keypair(static_private_bytes)
+        logger.info(f"🔐 Hub静态公钥: {self.static_pub_bytes.hex()[:16]}...")
 
         # 回调
         self.on_node_message: Optional[Callable[[str, bytes], None]] = None
@@ -452,45 +664,54 @@ class TunnelHub:
             logger.error(f"处理包错误: {e}")
 
     def _handle_handshake(self, node_id: str, addr: Tuple[str, int], pkg_type: int, seq: int, payload: bytes):
-        """处理握手"""
+        """Noise握手处理"""
         if pkg_type == PacketType.HANDSHAKE_INIT:
-            # 节点请求连接
-            # 期望payload: node_id
-            try:
-                their_node_id = payload.decode()
-            except:
+            # payload格式: 32字节静态公钥 || 32字节临时公钥 || node_id
+            if len(payload) < 65:
+                logger.warning(f"INIT payload太短: {len(payload)}")
                 return
 
-            sess = self.sessions.create_session(their_node_id, addr)
-            sess.seq_recv = seq
+            peer_static_pub = payload[:32]
+            peer_ephemeral_pub = payload[32:64]
+            node_id_raw = payload[64:].decode(errors='replace')
 
-            # 发送握手ACK（带会话密钥）
+            sess = self.sessions.create_session(node_id_raw, addr)
+            sess.seq_recv = seq
+            sess.peer_static_pub = peer_static_pub
+            sess.peer_ephemeral_pub = peer_ephemeral_pub
+
+            # Noise握手（Responder端）
+            sess.noise = NoiseHandshake(is_initiator=False)
+            if not HAS_NOISE:
+                # fallback: 使用简单密钥
+                sess.key = os.urandom(32)
+                logger.warning("⚠️ Noise不可用，使用简单密钥")
+            else:
+                sess.noise.generate_static_keypair()  # Hub自己的静态密钥
+                ack_payload, re_pub = sess.noise.respond_handshake(
+                    peer_static_pub,  # init_payload
+                    peer_ephemeral_pub
+                )
+                # 从Noise派生的密钥
+                if sess.noise.session_keys:
+                    sess.key = sess.noise.session_keys.send_key
+                # ack_payload = re_pub
+                ack_payload = re_pub
+
+            # 发送握手ACK（包含Hub的临时公钥）
             resp = pack_frame(
                 PacketType.HANDSHAKE_ACK,
                 sess.seq_send,
                 0, 0,
-                sess.key,  # 32字节会话密钥（明文传输，实际应用应用DH加密）
+                ack_payload,
                 self.sessions.secret
             )
             self.sock.sendto(resp, addr)
-
-            # 发送握手FIN（加密）
-            sess.seq_send += 1
-            fin = pack_frame(
-                PacketType.HANDSHAKE_FIN,
-                sess.seq_send,
-                0, 0,
-                b"established",
-                self.sessions.secret,
-                cipher_key=sess.key
-            )
-            self.sock.sendto(fin, addr)
-            sess.established = True
-            logger.info(f"📡 握手INIT {their_node_id} → FIN已发送 (加密)")
+            logger.info(f"📡 Noise INIT {node_id_raw} → ACK已发送")
 
         elif pkg_type == PacketType.HANDSHAKE_ACK:
-            # 收到ACK（作为节点时使用）
-            logger.info(f"📡 握手ACK seq={seq}")
+            # 收到ACK（Node端使用，Hub这里不应该收到）
+            logger.info(f"📡 收到非预期ACK seq={seq}")
 
         elif pkg_type == PacketType.HANDSHAKE_FIN:
             # 握手完成确认
@@ -681,6 +902,11 @@ class TunnelNode:
         self.retrans_window = RetransmitWindow()
         self.frag_assembler = FragmentAssembler()
 
+        # Noise握手（Initiator端）
+        self.noise = NoiseHandshake(is_initiator=True)
+        self.static_pub_bytes = self.noise.generate_static_keypair()
+        logger.info(f"🔐 Node静态公钥: {self.static_pub_bytes.hex()[:16]}...")
+
         # 回调
         self.on_hub_message: Optional[Callable[[bytes], None]] = None
         self.on_connect: Optional[Callable[[], None]] = None
@@ -726,10 +952,84 @@ class TunnelNode:
         logger.info(f"🛑 Tunnel Node {self.node_id} 已停止")
 
     def _do_handshake(self) -> bool:
-        """执行握手"""
-        logger.info(f"🔑 正在连接中枢 {self.hub_addr}...")
+        """Noise Protocol 握手（Initiator）
 
-        # 发送握手INIT
+        流程：
+          Node --INIT(s,e)--> Hub
+          Node <--ACK(re, es)-- Hub  (re=Hub临时公钥)
+          Node --FIN(e, ee, se)-> Hub
+        """
+        logger.info(f"🔑 正在连接中枢 (Noise握手) {self.hub_addr}...")
+
+        if not HAS_NOISE:
+            logger.warning("⚠️ Noise不可用，使用fallback握手")
+            return self._do_handshake_fallback()
+
+        # Step 1: INIT (s=静态公钥, e=临时公钥)
+        init_payload, e_pub = self.noise.initiate_handshake()
+        # payload = 静态公钥(32) || 临时公钥(32) || node_id
+        init_data = self.static_pub_bytes + e_pub + self.node_id.encode()
+
+        init = pack_frame(
+            PacketType.HANDSHAKE_INIT,
+            random.randint(1, 0xFFFF),
+            0, 0,
+            init_data,
+            self.sessions.secret
+        )
+        self.sock.sendto(init, self.hub_addr)
+        logger.info(f"📡 Noise INIT 已发送")
+
+        # Step 2: 等待 ACK(re)
+        deadline = time.time() + HANDSHAKE_TIMEOUT
+        re_pub = None
+        while time.time() < deadline:
+            try:
+                data, addr = self.sock.recvfrom(65535)
+                if addr == self.hub_addr:
+                    frame = unpack_frame(data, self.sessions.secret)
+                    if frame and frame["type"] == PacketType.HANDSHAKE_ACK:
+                        re_pub = frame["payload"]  # Hub的临时公钥
+                        logger.info(f"📡 收到ACK: re={re_pub.hex()[:16]}...")
+                        break
+            except socket.timeout:
+                continue
+
+        if not re_pub:
+            logger.error("❌ 未收到ACK")
+            return False
+
+        # Step 3: 处理响应，完成Noise握手
+        self.noise.process_handshake_response(b"", re_pub)
+
+        # Step 4: 发送 FIN(e, proof)
+        fin_payload = e_pub  # 发送自己的临时公钥作为证明
+        self.noise.finalize_handshake(fin_payload)
+
+        fin = pack_frame(
+            PacketType.HANDSHAKE_FIN,
+            random.randint(1, 0xFFFF),
+            0, 0,
+            fin_payload,
+            self.sessions.secret,
+            cipher_key=self.noise.session_keys.send_key if self.noise.session_keys else None
+        )
+        self.sock.sendto(fin, self.hub_addr)
+
+        # 从Noise获取会话密钥
+        if self.noise.session_keys:
+            self.session_key = self.noise.session_keys.recv_key
+        else:
+            self.session_key = os.urandom(32)
+
+        self.connected = True
+        logger.info(f"✅ 隧道加密通道已建立 (Noise)")
+        if self.on_connect:
+            self.on_connect()
+        return True
+
+    def _do_handshake_fallback(self) -> bool:
+        """Fallback明文握手（Noise不可用时）"""
         init = pack_frame(
             PacketType.HANDSHAKE_INIT,
             random.randint(1, 0xFFFF),
@@ -739,35 +1039,23 @@ class TunnelNode:
         )
         self.sock.sendto(init, self.hub_addr)
 
-        # 等待握手ACK + HANDSHAKE_FIN（加密）
         deadline = time.time() + HANDSHAKE_TIMEOUT
         while time.time() < deadline:
             try:
                 data, addr = self.sock.recvfrom(65535)
                 if addr == self.hub_addr:
-                    # 先用明文解开（握手ACK）
                     frame = unpack_frame(data, self.sessions.secret)
                     if frame and frame["type"] == PacketType.HANDSHAKE_ACK:
-                        self.session_key = frame["payload"]  # 32字节，用作ChaCha20密钥
-                        logger.info(f"📡 收到ACK，获取会话密钥，等待加密FIN...")
-                        # 继续等待 HANDSHAKE_FIN（加密）
-                        continue
-                    if frame and frame["type"] == PacketType.HANDSHAKE_FIN:
-                        # 收到FIN，但需要用session_key解密
-                        # 先用明文解开（HMAC验证），再用session_key解密payload
-                        fin_frame = unpack_frame(data, self.sessions.secret, self.session_key)
-                        if not fin_frame:
-                            logger.warning("FIN解密失败")
-                            continue
+                        self.session_key = frame["payload"]
+                        logger.info(f"📡 Fallback握手成功")
                         self.connected = True
-                        logger.info(f"✅ 隧道加密通道已建立")
                         if self.on_connect:
                             self.on_connect()
                         return True
             except socket.timeout:
                 continue
 
-        logger.error(f"❌ 握手超时")
+        logger.error("❌ Fallback握手超时")
         return False
 
     def _recv_loop(self):

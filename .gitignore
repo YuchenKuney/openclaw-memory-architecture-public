@@ -27,3 +27,9 @@ config.yaml
 # Git 配置（包含认证token）
 .git/config
 .gitcredentials
+USER.md
+MEMORY.md
+SOUL.md
+IDENTITY.md
+AGENTS.md
+HEARTBEAT.md

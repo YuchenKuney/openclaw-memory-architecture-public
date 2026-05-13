@@ -1,13 +1,13 @@
 # 🦐 OpenClaw Memory Architecture
 
-> AI Agent 自进化系统 — 记忆主权 × 反黑箱透明化 × Web4.0 安全铁律
+> AI Agent 自进化系统 — 记忆架构 × 反黑箱透明化 × Web4.0 安全铁律 × 神经传输层
 
 [![Version: v12](https://img.shields.io/badge/Version-v12-blue.svg)](https://github.com/YuchenKuney/openclaw-memory-architecture-public)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
 ---
 
-## 🎯 三大核心亮点
+## 🎯 四大核心亮点
 
 ### 1️⃣ 三层记忆架构
 > 借鉴 MemGPT 虚拟内存机制 + Generative Agents 反思架构
@@ -41,15 +41,6 @@
 用户给任务 → AI 判断缺技能 → 自动生成 SKILL.md → 执行 → 沉淀到 workspace
 ```
 
-**核心流程**：
-```
-检测任务需求 → 判断现有 Skills 是否足够
-    ↓ [不足]
-分析缺什么能力 → 生成 SKILL.md（名称/描述/命令示例）
-    ↓
-创建执行脚本 → 动态加载 → Agent 自动发现并使用
-```
-
 | 版本 | 说明 |
 |------|------|
 | **版本 A** | 多服务器 + WireGuard VPN |
@@ -72,6 +63,68 @@
 
 ---
 
+### 4️⃣ Web4.0 AI Agent 沙箱
+
+> **给 AI 装一双眼睛** — AI 在沙箱隔离环境中自主浏览网页、分析研究
+
+**隔离安全特性**：
+- **Namespace 隔离**：PID / Network / Mount / IPC / UTS / User
+- **Seccomp 过滤**：只允许 ~100 个安全系统调用
+- **Cookie 铁律**：只注入 preference cookies，禁止登录态 tokens
+- **robots.txt 合规**：铁律五，fetch_page 集成检查
+- **审计日志**：铁律六，IronRuler.audit_log() 全量记录
+
+**Stealth 反检测（17 项）**：移除 navigator.webdriver、Canvas 加噪、WebGL 渲染器伪装、HardwareConcurrency 仿真等。实测 Bing 搜索从 0 结果 → 34,600 条真实数据。
+
+**Web4.0 六条铁律**：
+
+| 铁律 | 内容 |
+|------|------|
+| 铁律一 | Cookie 只读，登录态 tokens 禁止注入 |
+| 铁律二 | 禁止账号注册/登录操作 |
+| 铁律三 | 禁止 PayPal/银行/邮箱等敏感页面访问 |
+| 铁律四 | 速率限制（3秒间隔 + 50次/上限）|
+| 铁律五 | robots.txt 合规检查 |
+| 铁律六 | 审计日志全量记录 |
+
+详见 [web4_IRON_RULES.md](web4_IRON_RULES.md)（私有仓库）
+
+---
+
+### 5️⃣ 神经传输层（Neural Tunnel Protocol）
+
+> 自研 UDP 私有神经隧道，彻底替代 WireGuard
+
+**核心特性**：
+
+| 特性 | 实现 |
+|------|------|
+| **架构** | 全中心化 Hub-Spoke，所有流量收敛到中枢 |
+| **密钥交换** | Noise Protocol (X25519 + HKDF-SHA256) |
+| **端到端加密** | ChaCha20-Poly1305 AEAD |
+| **完整性** | HMAC-SHA256 防篡改 |
+| **防重放** | 时间戳（5分钟窗口）+ 序列号 |
+| **分片** | 自动分片重组，MTU=1400 |
+| **重传** | ARQ滑动窗口，最多5次重传 |
+| **心跳** | 30秒保活，5分钟超时踢出 |
+| **TUN网卡** | 虚拟网卡，系统级流量劫持 |
+
+**握手流程（2-RTT）**：
+```
+Node                        Hub
+──────────────────────────────────
+INIT(s_pub, e_pub)     ──→  (静态+临时公钥)
+                     ←──  ACK(re_pub, es_proof)
+FIN(e_pub, ee, se)    ──→  (完成证明)
+```
+
+**安全属性**：
+- 前向保密：临时密钥保护，私钥泄露不影响历史
+- 双向认证：静态密钥实现节点身份验证
+- 防中间人：双方DH贡献确保密钥协商安全
+
+---
+
 ## 🏗️ 系统架构
 
 ```
@@ -89,16 +142,13 @@
     │  AI自进化技能 │ │ MEMORY.md  │ │ clawkeeper │
     └─────────────┘ │ memory/    │ └─────────────┘
                      └────────────┘
-                           │
-              ┌────────────┼────────────┐
-              │            │            │
-        ┌─────▼──────┐ ┌───▼────┐ ┌───▼──────┐
-        │cron任务监控│ │inotify │ │ Webhook  │
-        │task_watchdog│ │文件监控│ │飞书卡片推送│
-        └────────────┘ └────────┘ └──────────┘
+           ┌─────────────────┼─────────────────┐
+           │                 │                 │
+    ┌──────▼──────┐  ┌──────▼──────┐  ┌──────▼──────┐
+    │ Neural Tunnel│  │  Web4.0     │  │  反黑箱透明化 │
+    │  UDP神经隧道 │  │  AI沙箱浏览器│  │  全链路可见  │
+    └─────────────┘  └─────────────┘  └─────────────┘
 ```
-
-详见 [ARCHITECTURE.md](ARCHITECTURE.md)
 
 ---
 
@@ -110,6 +160,8 @@
 | `scripts/` | 核心脚本 — skill_factory / task_watchdog / feishu_progress |
 | `skills/` | Skill 工厂示例 — 6个可复用的 Agent Skill |
 | `shared/` | 知识库 — 错误解决方案 / 领域知识 / 最佳实践 |
+| `web4/` | Web4.0 沙箱浏览器 — 隔离环境 / Stealth反检测 / 六条铁律 |
+| `neural/` | 神经传输层 — UDP隧道 / Noise协议 / TUN网卡劫持 |
 
 ---
 
